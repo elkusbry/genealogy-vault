@@ -1,3 +1,17 @@
+# CI workflow — to enable, move this file to .github/workflows/ci.yml
+#
+# Why it's not under .github/workflows/ in this repo yet: the initial push
+# was made with a gh CLI OAuth token that lacked 'workflow' scope. To enable
+# CI on your fork:
+#
+#   gh auth refresh -h github.com -s workflow
+#   git mv docs/ci-template.yml .github/workflows/ci.yml
+#   git commit -m 'Enable CI'
+#   git push
+#
+# After that, every push and PR runs shellcheck, ruff, install smoke test,
+# and fixture frontmatter validation.
+
 name: CI
 
 on:
