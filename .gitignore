@@ -1,0 +1,33 @@
+# Obsidian
+.obsidian/workspace*
+.obsidian/cache
+.trash/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Scan pipeline working state
+_scripts/scan-pipeline/.ocr-cache/
+_scripts/scan-pipeline/logs/
+
+# Tagger transient exports
+photo-tagger-changes-*.json
+document-tagger-changes-*.json
+
+# Installer-stamped version (only present in target vaults, not here)
+.genealogy-vault-version
+
+# Local-only inbox contents — fixtures stay in demo/, root _inbox/ is empty
+_inbox/*
+!_inbox/.gitkeep
+!_inbox/README.md

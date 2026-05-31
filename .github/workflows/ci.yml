@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-shell:
+    name: Lint shell
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: shellcheck install.sh
+        run: shellcheck install.sh
+      - name: shellcheck process-scans.sh
+        run: shellcheck _scripts/scan-pipeline/process-scans.sh
+
+  lint-python:
+    name: Lint Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install ruff
+        run: pip install ruff
+      - name: ruff check
+        run: ruff check _scripts/
+
+  smoke-install:
+    name: Smoke-test install.sh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install into tempdir
+        run: |
+          TEST_VAULT="$(mktemp -d)"
+          ./install.sh "$TEST_VAULT"
+          test -d "$TEST_VAULT/skill"
+          test -d "$TEST_VAULT/_scripts"
+          test -d "$TEST_VAULT/templates"
+          test -d "$TEST_VAULT/.claude/skills/genealogy"
+          test -f "$TEST_VAULT/CLAUDE.md"
+          test -f "$TEST_VAULT/AGENTS.md"
+          test -f "$TEST_VAULT/.genealogy-vault-version"
+          # Re-run for idempotency check
+          ./install.sh "$TEST_VAULT"
+          # CLAUDE.md and AGENTS.md should now have sideloaded versions
+          test -f "$TEST_VAULT/CLAUDE.md.from-genealogy-vault"
+          test -f "$TEST_VAULT/AGENTS.md.from-genealogy-vault"
+
+  smoke-migrate:
+    name: Smoke-test migrate.py
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run migrate against fresh vault
+        run: |
+          TEST_VAULT="$(mktemp -d)"
+          ./install.sh "$TEST_VAULT"
+          python3 _scripts/migrate.py "$TEST_VAULT"
+
+  validate-fixtures:
+    name: Validate Riverstone fixture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install PyYAML
+        run: pip install pyyaml
+      - name: Validate frontmatter
+        run: |
+          python3 - <<'PY'
+          """Lightweight schema check for the Riverstone fixture.
+
+          For every demo/people/*.md and demo/sources/*.md:
+          - Must have YAML frontmatter delimited by --- ... ---
+          - Must parse as valid YAML
+          - Must contain the schema's required top-level keys
+
+          v0.1 keeps this loose — full schema validation is future work.
+          """
+          import sys
+          from pathlib import Path
+          import yaml
+
+          PEOPLE_REQUIRED = {"name", "birth", "parents", "children", "confidence", "tags"}
+          # related_people is optional — companion docs (translations, notes)
+          # legitimately don't have their own people list.
+          DOC_REQUIRED = {"title", "type", "source"}
+
+          errors = []
+
+          def parse_fm(path):
+              text = path.read_text()
+              if not text.startswith("---\n"):
+                  errors.append(f"{path}: missing frontmatter")
+                  return None
+              parts = text.split("---\n", 2)
+              if len(parts) < 3:
+                  errors.append(f"{path}: malformed frontmatter")
+                  return None
+              try:
+                  return yaml.safe_load(parts[1]) or {}
+              except yaml.YAMLError as e:
+                  errors.append(f"{path}: YAML error: {e}")
+                  return None
+
+          repo = Path(".")
+          for p in sorted((repo / "demo" / "people").glob("*.md")):
+              fm = parse_fm(p)
+              if fm is None:
+                  continue
+              missing = PEOPLE_REQUIRED - fm.keys()
+              if missing:
+                  errors.append(f"{p}: missing required person keys: {sorted(missing)}")
+
+          for p in sorted((repo / "demo" / "sources").glob("*.md")):
+              fm = parse_fm(p)
+              if fm is None:
+                  continue
+              missing = DOC_REQUIRED - fm.keys()
+              if missing:
+                  errors.append(f"{p}: missing required source keys: {sorted(missing)}")
+
+          if errors:
+              print("FAIL — schema issues:")
+              for e in errors:
+                  print(f"  - {e}")
+              sys.exit(1)
+
+          print("OK — fixture frontmatter validates")
+          PY

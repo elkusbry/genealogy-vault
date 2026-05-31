@@ -1,0 +1,17 @@
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+# Be permissive — the inherited tooling scripts use some compact style
+# that's fine for this codebase. Tighten later if it becomes a real issue.
+ignore = [
+    "E701",  # multiple statements on one line (colon) — used in compact try/except
+    "E702",  # multiple statements on one line (semicolon)
+    "E741",  # ambiguous variable name (l, I) — fine in scripts
+]
+
+exclude = [
+    "_scripts/scan-pipeline/.ocr-cache",
+    "_scripts/scan-pipeline/logs",
+]

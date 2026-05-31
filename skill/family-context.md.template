@@ -1,0 +1,78 @@
+# Family Context
+
+> **First run:** copy this template to `skill/family-context.md` (drop the
+> `.template` extension) and fill it in. The skill reads `family-context.md`
+> for family-specific knowledge that should NOT be in the generic skill.
+>
+> The file is gitignored by default — your family details stay private even if
+> you fork this repo publicly.
+
+## Tree root(s)
+
+Who is the earliest ancestor(s) you've documented? List them with birth/death
+years. Example:
+
+- **Heinrich Riverstone (1885–1962)** — paternal line root, immigrated from
+  Bremen in 1912.
+- **Klara Adler (1890–1971)** — Heinrich's spouse, born Berlin.
+
+## Branches
+
+List the major branches the tree splits into (typically children of the root
+ancestor[s]). Use this to compute `branch:` tags on person files. Example:
+
+- **Mary** — eldest, married Thomas Brennan; descendants in Boston area.
+- **Friedrich** — middle child, no surviving children.
+- **Else** — youngest, two children, moved to California in 1950s.
+
+## Extended / collateral families
+
+Any in-law families that you're also tracking. Example:
+
+- **Brennan** — through Mary's marriage to Thomas (1937).
+- **Adler** — Klara's birth family.
+
+## Surname triggers
+
+List the surnames the skill should trigger on (in addition to the generic
+genealogy triggers). The skill picks these up automatically when this file is
+present.
+
+```
+Riverstone, Adler, Brennan
+```
+
+## Known discrepancies
+
+Document conflicts you've encountered across sources. Example:
+
+- **Heinrich's birth year** — passport says 1885, ship manifest says 1886.
+  Default: 1885 (passport is primary).
+- **Klara's maiden name** — sometimes spelled "Adler," sometimes "Adlerstein."
+  Family lore says the longer form was Anglicized at Ellis Island.
+
+## Name aliases
+
+Same person, multiple names across sources. Example:
+
+- **Heinrich Riverstone** = Henry Riverstone (Americanized after 1920) = Hank
+- **Klara Adler** = Clara Riverstone (married name, all US records)
+
+## DNA research context
+
+If you're doing genetic genealogy, note kit numbers, haplogroups, and ongoing
+hypotheses here so the skill can reference them.
+
+## Special tags
+
+Document any non-standard tags you use that the skill should recognize.
+Example:
+
+- `dna/ydna` — files where Y-DNA evidence is relevant
+- `research/adoption-theory` — branches affected by an open adoption question
+
+## Notes
+
+Anything else the agent should know: how you organize the tree, naming
+conventions specific to your family (patronymic systems, Hebrew names, etc.),
+or specific research priorities.
