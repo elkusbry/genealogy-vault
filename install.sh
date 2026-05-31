@@ -108,7 +108,7 @@ skip_existing_dir() {
     local count_copied=0
     local count_skipped=0
     while IFS= read -r -d '' src_file; do
-        local rel="${src_file#$src/}"
+        local rel="${src_file#"$src"/}"
         local dst_file="$dst/$rel"
         mkdir -p "$( dirname "$dst_file" )"
         if [[ -e "$dst_file" && $FORCE -eq 0 ]]; then

@@ -2,12 +2,13 @@
 
 **An AI-assisted Obsidian genealogy vault. Drop scans, get a family tree.**
 
-<!-- HERO GIF — placeholder.
-     Record: drop a PDF in _inbox/, type "process inbox" in Claude Code or
-     Codex, show OCR → fact extraction → person-file updates → MOC update.
-     Save as docs/screenshots/hero.gif and uncomment the line below.
--->
-<!-- ![hero](docs/screenshots/hero.gif) -->
+![hero](docs/screenshots/hero.png)
+
+<!-- The hero above is a static composite showing the workflow. For an
+     animated version, record a screen capture of Claude Code processing
+     a real inbox, save as docs/screenshots/hero.gif, and swap the
+     extension above. -->
+
 
 > Works with **Claude Code** and **Codex CLI** out of the box. One canonical
 > skill, two per-agent wrappers. Your private vault stays private.
@@ -152,9 +153,15 @@ underlying skill content lives in one place.
   (`.claude-plugin/plugin.json` + `marketplace.json` +
   `skills/genealogy/SKILL.md`); CC0 placeholder JPEGs for demo;
   prebuilt tagger HTMLs against the Riverstone fixture.
-- **v0.3** — Pre-recorded screencast / hero GIF embedded in README;
-  hosted demo site (Obsidian Publish export of the Riverstones); CI
-  that exercises both agents end-to-end against the demo fixture.
+- **v0.3 — shipped.** Static hero composite at the top of this README;
+  skill validator (`_scripts/validate_skill.py`) + CI step that catches
+  broken references and stale workflow links; tagger-build smoke test
+  in CI against the Riverstone fixture.
+- **v0.4** — Animated hero GIF (real screen capture of the workflow);
+  hosted demo site (Quartz / obsidian-html static export of the
+  Riverstones — Jekyll alone can't render Obsidian wikilinks); CI that
+  exercises both Claude Code and Codex end-to-end against the demo
+  (requires interactive harness).
 
 ## Contributing
 

@@ -17,6 +17,35 @@ or rename in `templates/person.md`, `templates/document.md`, or
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-31
+
+### Added
+
+- **Hero composite image** (`docs/screenshots/hero.png`, 94 KB) at the
+  top of the README — shows the workflow visually: scanned German letter
+  → "process inbox" agent badge → structured YAML person file with
+  extracted facts, confidence, and discrepancy todos. Generated with PIL;
+  no external dependencies on real screenshots yet.
+- **Skill validator** (`_scripts/validate_skill.py`) that checks:
+  - `skill/SKILL.md` parses cleanly
+  - every workflow/schema reference resolves to an existing file
+  - both skill wrappers exist with valid YAML frontmatter
+  - `plugin.json` parses and its version matches `VERSION`
+  - no workflow file references agent-specific tool names ("the Bash
+    tool," etc.)
+- **CI jobs** for the validator and a tagger-build smoke test against
+  the Riverstone fixture (catches regressions in the build scripts and
+  ensures the prebuilt taggers stay reproducible).
+
+### Fixed
+
+- Broken reference in `skill/SKILL.md` to a non-existent
+  `workflows/relationship-correction.md` (the procedure consolidated
+  into `research-and-maintenance.md` in v0.1 but the cross-reference
+  wasn't updated). Caught by the new validator.
+- `install.sh` SC2295 shellcheck warning (`${src_file#$src/}` →
+  `${src_file#"$src"/}`).
+
 ## [0.2.0] - 2026-05-31
 
 ### Added

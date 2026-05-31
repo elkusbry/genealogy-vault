@@ -119,7 +119,8 @@ sources:
 
 If person A lists B as a child, B **must** list A as a parent. Same for
 spouses ↔ spouses and siblings ↔ siblings. Edits that touch a relationship
-must update both halves. See `workflows/relationship-correction.md`.
+must update both halves. See `workflows/research-and-maintenance.md` §
+Handle relationship corrections.
 
 ## Confidence levels
 

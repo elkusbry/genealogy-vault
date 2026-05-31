@@ -81,6 +81,44 @@ jobs:
           ./install.sh "$TEST_VAULT"
           python3 _scripts/migrate.py "$TEST_VAULT"
 
+  validate-skill:
+    name: Validate skill references
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install PyYAML
+        run: pip install pyyaml
+      - name: Run skill validator
+        run: python3 _scripts/validate_skill.py
+
+  build-taggers:
+    name: Smoke-test tagger builds against demo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install PyYAML
+        run: pip install pyyaml
+      - name: Build both taggers against the Riverstone fixture
+        run: |
+          # The tagger build scripts expect VAULT/people, sources, media at
+          # the root. The fixture lives under demo/, so symlink for the
+          # build then remove.
+          ln -sf demo/people people
+          ln -sf demo/sources sources
+          ln -sf demo/media media
+          python3 _scripts/taggers/build_document_tagger.py
+          python3 _scripts/taggers/build_photo_tagger.py
+          rm -f people sources media
+          # Sanity-check the output files exist and have reasonable size
+          test -s _tools/document-tagger.html
+          test -s _tools/photo-tagger.html
+
   validate-fixtures:
     name: Validate Riverstone fixture
     runs-on: ubuntu-latest
