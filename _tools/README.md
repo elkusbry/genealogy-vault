@@ -16,8 +16,9 @@ UI for tagging photos with people via autocomplete. Built from images in
 
 ## Build / regenerate
 
-Both files are NOT checked into git — they are built artifacts. Generate
-them with:
+The prebuilt files in this directory are generated against the **Riverstone
+demo fixture** so cloning the repo gives you a working tagger to click
+through immediately. When you add your own photos and people, regenerate:
 
 ```sh
 python3 _scripts/taggers/build_document_tagger.py

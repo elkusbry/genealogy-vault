@@ -42,15 +42,22 @@ demo/
 
 ## Binary assets
 
-The source sidecars reference PDFs and JPGs (`source: "[[*.pdf]]"`,
-`![[*.jpg]]`) that are **not shipped** with this demo. v0.1 keeps the
-repo small and avoids licensing concerns around stock imagery.
+**Three CC0 placeholder JPEGs ship with this demo** so the photo tagger
+renders something out of the box:
 
-To exercise the OCR pipeline or render the photo tagger against real
-content, drop a sample PDF or JPG into `demo/sources/` (or `demo/media/`)
-matching one of the referenced filenames. The skill will pick it up.
+- `demo/sources/heinrich-riverstone-tombstone.jpg`
+- `demo/sources/1912-klara-passport-photo.jpg`
+- `demo/media/undated-riverstone-family-portrait.jpg`
 
-A future release will ship CC0 placeholder images for the photo demos.
+They're synthetically generated (PIL drawings with sepia tones) and
+clearly labeled "PLACEHOLDER." Replace with your own scans whenever you
+want — the sidecars don't change.
+
+**PDFs referenced by the source sidecars are NOT shipped.** To exercise
+the OCR pipeline against the demo, drop a sample PDF named exactly to
+match one of the referenced stems (e.g.,
+`1937-letter-from-heinrich-to-klara-vienna.pdf`) into `demo/sources/`.
+The skill will pick it up.
 
 ## Starting with your own family
 

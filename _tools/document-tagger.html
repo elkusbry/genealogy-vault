@@ -1,0 +1,1785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Document Tagger</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #181b22;
+    --panel2: #20242d;
+    --panel3: #262b36;
+    --border: #2a2f3a;
+    --text: #e8eaed;
+    --muted: #9aa3b2;
+    --accent: #7aa2ff;
+    --accent2: #ffd479;
+    --danger: #ff6b6b;
+    --chip-bg: #2a3145;
+    --chip-text: #cfd6ea;
+    --added: #1f3a2a;
+    --removed: #3a1f1f;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%; background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 13.5px;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px; padding: 9px 14px;
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 50;
+  }
+  header h1 { font-size: 14.5px; margin: 0; font-weight: 600; }
+  header .meta { color: var(--muted); font-size: 12px; }
+  header .spacer { flex: 1; }
+  header button {
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 10px; font-size: 12.5px; cursor: pointer;
+  }
+  header button:hover { border-color: var(--accent); }
+  header button.primary { background: var(--accent); color: #0b1020; border-color: var(--accent); font-weight: 600; }
+  header .pending-badge {
+    background: var(--accent2); color: #1a1300;
+    border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 700;
+  }
+  main {
+    display: grid;
+    grid-template-columns: 320px 1fr 420px;
+    height: calc(100vh - 47px);
+    min-height: 0;
+  }
+  /* --- Doc list column --- */
+  aside.list {
+    background: var(--panel); border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 8px;
+    min-width: 0;
+  }
+  aside.list .search {
+    width: 100%; padding: 7px 10px; margin-bottom: 8px;
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+  }
+  aside.list .view-toggle {
+    display: flex; margin-bottom: 8px;
+    border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+  }
+  aside.list .view-toggle button {
+    flex: 1; padding: 6px 8px; background: var(--panel2);
+    color: var(--muted); border: 0; cursor: pointer;
+    font-size: 11.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    border-right: 1px solid var(--border);
+  }
+  aside.list .view-toggle button:last-child { border-right: 0; }
+  aside.list .view-toggle button.on { background: var(--accent); color: #0b1020; }
+  aside.list .view-toggle button .n { font-weight: 500; opacity: 0.7; margin-left: 3px; }
+  aside.list .filter-row {
+    display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;
+  }
+  aside.list .filter-row button {
+    background: var(--panel2); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 3px 9px; font-size: 11.5px; cursor: pointer;
+  }
+  aside.list .filter-row button.on { background: var(--accent); color: #0b1020; border-color: var(--accent); }
+  aside.list .type-section {
+    margin-bottom: 8px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--panel2); overflow: hidden;
+  }
+  aside.list .type-toggle {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    background: transparent; color: var(--text); border: 0;
+    padding: 6px 10px; font-size: 11.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer;
+  }
+  aside.list .type-toggle:hover { color: var(--accent); }
+  aside.list .type-toggle .caret { color: var(--muted); font-size: 10px; }
+  aside.list .type-toggle .count {
+    color: var(--muted); font-weight: 500; text-transform: none; letter-spacing: 0;
+    font-size: 11px;
+  }
+  aside.list .type-toggle .count.active { color: var(--accent2); font-weight: 700; }
+  aside.list .type-chips {
+    display: none; flex-wrap: wrap; gap: 4px;
+    padding: 6px 8px 8px; max-height: 240px; overflow-y: auto;
+    border-top: 1px solid var(--border);
+  }
+  aside.list .type-chips.show { display: flex; }
+  aside.list .type-chips button {
+    background: var(--panel3); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 2px 8px; font-size: 11px; cursor: pointer;
+    display: inline-flex; gap: 4px; align-items: center;
+  }
+  aside.list .type-chips button:hover { color: var(--text); border-color: var(--accent); }
+  aside.list .type-chips button.on { background: var(--accent); color: #0b1020; border-color: var(--accent); }
+  aside.list .type-chips button .n {
+    background: rgba(0,0,0,0.18); border-radius: 999px;
+    padding: 0 5px; font-size: 10px;
+  }
+  aside.list .type-chips button.on .n { background: rgba(0,0,0,0.25); }
+  aside.list .type-chips .clear {
+    background: transparent; color: var(--muted); border: 1px dashed var(--border);
+  }
+  aside.list .type-chips .clear:hover { color: var(--danger); border-color: var(--danger); }
+  .doc-row {
+    padding: 8px 10px; border-radius: 6px;
+    cursor: pointer; margin-bottom: 3px;
+    border: 1px solid transparent;
+  }
+  .doc-row:hover { background: var(--panel2); }
+  .doc-row.active { background: var(--panel2); border-color: var(--accent); }
+  .doc-row .t { font-size: 12.5px; line-height: 1.35; word-break: break-word; }
+  .doc-row .sub { color: var(--muted); font-size: 11px; margin-top: 3px; }
+  .doc-row .badges { margin-top: 4px; display: flex; gap: 3px; flex-wrap: wrap; }
+  .doc-row .badge {
+    display: inline-block; padding: 1px 6px; border-radius: 999px;
+    background: var(--chip-bg); color: var(--chip-text); font-size: 10px;
+  }
+  .doc-row .badge.dirty { background: var(--accent2); color: #1a1300; }
+  .doc-row .badge.pair { background: #3a2f5a; color: #d8c5ff; }
+  .doc-row .badge.untagged { background: #4a2a2a; color: #ffb3b3; }
+  .doc-row .badge.ocr-high { background: #1e3a2a; color: #98e5b4; }
+  .doc-row .badge.ocr-medium { background: #3a311e; color: #e5cf98; }
+  .doc-row .badge.ocr-low { background: #3a1f1f; color: #f1a0a0; }
+  .doc-row .badge.ocr-unset { background: #2a2f3a; color: var(--muted); }
+  .doc-row .badge.cleaned-missing { background: #3a1f1f; color: #f1a0a0; }
+  .doc-row .badge.cleaned-placeholder { background: #3a311e; color: #e5cf98; }
+  .doc-row .badge.cleaned-has-text { background: #1e3a2a; color: #98e5b4; }
+
+  /* --- Center: main document --- */
+  section.doc {
+    background: #0a0c11;
+    display: flex; flex-direction: column;
+    overflow: hidden; min-width: 0;
+  }
+  .doc-toolbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 12px; background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0; font-size: 12px;
+  }
+  .doc-toolbar .name { color: var(--muted); word-break: break-all; }
+  .doc-toolbar .spacer { flex: 1; }
+  .doc-toolbar a.open-ext {
+    color: var(--accent); text-decoration: none; font-size: 11.5px;
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 3px 8px;
+  }
+  .doc-toolbar a.open-ext:hover { border-color: var(--accent); }
+  .doc-area {
+    flex: 1; overflow: auto;
+    display: flex; align-items: stretch; justify-content: stretch;
+    background: #0a0c11;
+  }
+  .doc-area embed,
+  .doc-area iframe {
+    width: 100%; height: 100%; border: 0; background: white;
+  }
+  .doc-area img {
+    max-width: 100%; max-height: 100%; object-fit: contain;
+    margin: auto; display: block;
+  }
+  .doc-area .md-body {
+    padding: 20px 28px; line-height: 1.55;
+    max-width: 760px; margin: 0 auto;
+    color: var(--text); font-size: 13.5px;
+  }
+  /* Markdown render styles — used in main doc area + right-pane tabs */
+  .md h1, .md h2, .md h3, .md h4, .md h5, .md h6 {
+    margin: 18px 0 8px 0; line-height: 1.3; color: var(--text);
+  }
+  .md h1 { font-size: 1.55em; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+  .md h2 { font-size: 1.3em; }
+  .md h3 { font-size: 1.13em; color: var(--accent); }
+  .md h4 { font-size: 1.0em; color: var(--accent2); }
+  .md p { margin: 8px 0; }
+  .md ul, .md ol { margin: 6px 0 6px 22px; padding: 0; }
+  .md li { margin: 2px 0; }
+  .md blockquote {
+    border-left: 3px solid var(--accent); margin: 8px 0; padding: 2px 12px;
+    color: var(--muted); background: rgba(122,162,255,0.05);
+  }
+  .md code {
+    background: var(--panel3); padding: 1px 5px; border-radius: 3px;
+    font-size: 0.9em; font-family: ui-monospace, Menlo, monospace;
+  }
+  .md pre {
+    background: var(--panel3); padding: 10px 12px; border-radius: 6px;
+    overflow-x: auto; line-height: 1.4;
+  }
+  .md pre code { background: transparent; padding: 0; }
+  .md a { color: var(--accent); text-decoration: none; }
+  .md a:hover { text-decoration: underline; }
+  .md hr { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
+  .md strong { color: var(--text); font-weight: 700; }
+  .md em { color: var(--text); font-style: italic; }
+  .md .wikilink {
+    background: var(--chip-bg); color: var(--chip-text);
+    padding: 1px 6px; border-radius: 3px; font-size: 0.92em;
+    text-decoration: none; border: 1px solid transparent;
+  }
+  .md .wikilink:hover { border-color: var(--accent); }
+  .md .wikilink.embed {
+    display: inline-block;
+    background: var(--panel3); color: var(--accent);
+    border: 1px dashed var(--border);
+    padding: 2px 8px;
+  }
+  .md .wikilink.embed::before { content: "📎 "; opacity: 0.7; }
+  .md table {
+    border-collapse: collapse; margin: 10px 0; font-size: 0.95em;
+  }
+  .md th, .md td {
+    border: 1px solid var(--border); padding: 4px 10px; text-align: left;
+  }
+  .md th { background: var(--panel2); }
+  .doc-empty { color: var(--muted); text-align: center; padding: 40px; margin: auto; }
+
+  /* --- Right panel --- */
+  aside.panel {
+    background: var(--panel); border-left: 1px solid var(--border);
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .tab-bar {
+    display: flex; background: var(--panel2);
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .tab-bar button {
+    flex: 1; padding: 9px 8px; background: transparent;
+    border: 0; border-right: 1px solid var(--border);
+    color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .tab-bar button:last-child { border-right: 0; }
+  .tab-bar button.on { background: var(--panel); color: var(--accent); }
+  .tab-bar button .badge {
+    display: inline-block; margin-left: 4px;
+    background: var(--accent2); color: #1a1300;
+    border-radius: 999px; padding: 0 5px;
+    font-size: 10px; font-weight: 700; text-transform: none; letter-spacing: 0;
+  }
+  .tab-body { flex: 1; overflow: auto; padding: 14px 16px; min-height: 0; }
+  .tab-body .pair-doc {
+    white-space: pre-wrap; line-height: 1.5; font-size: 13px;
+  }
+  .tab-body .pair-doc embed, .tab-body .pair-doc iframe {
+    width: 100%; height: 70vh; border: 0; background: white;
+  }
+  .tab-body .pair-doc img { max-width: 100%; display: block; }
+  .tab-body .pair-meta {
+    color: var(--muted); font-size: 11.5px; margin-bottom: 8px;
+    word-break: break-all;
+  }
+  .tab-body .empty { color: var(--muted); text-align: center; padding: 30px 0; }
+  /* --- Translation tab: stacked vs side-by-side --- */
+  /* When side-by-side is active, the tab-body becomes a fixed-height flex
+     container so the two text columns can scroll independently. */
+  .tab-body.is-translation-sxs {
+    overflow: hidden; padding: 0;
+    display: flex; flex-direction: column;
+  }
+  .translation-view {
+    display: flex; flex-direction: column;
+    height: 100%; min-height: 0;
+  }
+  .translation-toolbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    background: var(--panel2); flex-shrink: 0;
+  }
+  .translation-toolbar .label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--muted); font-weight: 600;
+  }
+  .translation-toolbar .view-modes {
+    display: flex; border: 1px solid var(--border); border-radius: 6px;
+    overflow: hidden;
+  }
+  .translation-toolbar .view-modes button {
+    background: var(--panel); color: var(--muted);
+    border: 0; padding: 4px 10px; font-size: 11.5px; cursor: pointer;
+    border-right: 1px solid var(--border);
+  }
+  .translation-toolbar .view-modes button:last-child { border-right: 0; }
+  .translation-toolbar .view-modes button.on {
+    background: var(--accent); color: #0b1020; font-weight: 600;
+  }
+  .translation-toolbar .pair-meta { margin: 0; }
+  .translation-cols {
+    flex: 1; min-height: 0; display: grid;
+    grid-template-columns: 1fr 1fr; gap: 1px;
+    background: var(--border); /* shows as a 1px vertical divider */
+  }
+  .translation-cols .col {
+    overflow-y: auto; padding: 12px 14px; background: var(--panel);
+    min-width: 0;
+  }
+  .translation-cols .col-head {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); font-weight: 700; margin: 0 0 8px 0;
+    position: sticky; top: 0; background: var(--panel);
+    padding: 4px 0; border-bottom: 1px solid var(--border);
+    z-index: 1;
+  }
+  .translation-cols .col-body { font-size: 13px; line-height: 1.55; }
+  .translation-cols .col.empty-col {
+    color: var(--muted); font-style: italic;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center;
+  }
+  /* Stacked mode: single scrolling column inside the regular tab-body */
+  .translation-stacked { padding: 0; }
+  .sidecar-card {
+    border: 1px solid var(--border); border-radius: 6px;
+    margin-bottom: 12px; background: var(--panel2);
+    overflow: hidden;
+  }
+  .sidecar-head {
+    padding: 8px 12px; background: var(--panel3);
+    border-bottom: 1px solid var(--border);
+  }
+  .sidecar-title { font-weight: 600; font-size: 13px; }
+  .sidecar-meta { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+  .sidecar-meta a { color: var(--accent); text-decoration: none; }
+  .sidecar-meta a:hover { text-decoration: underline; }
+  .sidecar-body { padding: 8px 12px; max-height: 320px; overflow-y: auto; font-size: 12.5px; }
+  .sidecar-section-label {
+    margin: 14px 0 4px 0; font-size: 10.5px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+  }
+  .related-card {
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--panel2);
+    padding: 6px 10px; margin-bottom: 6px;
+  }
+  .related-card:hover { border-color: var(--accent); }
+  .related-card .related-title {
+    color: var(--text); text-decoration: none; font-weight: 600; font-size: 12.5px;
+    word-break: break-word;
+  }
+  .related-card .related-title:hover { color: var(--accent); text-decoration: underline; }
+  .related-card .related-meta { color: var(--muted); font-size: 11px; margin-top: 2px; }
+  .sidecar-yaml {
+    background: var(--panel3); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; font-size: 11.5px; line-height: 1.45;
+    overflow-x: auto;
+    font-family: ui-monospace, Menlo, Monaco, monospace;
+  }
+
+  /* --- Metadata tab --- */
+  .meta-tab h3 {
+    margin: 14px 0 6px 0; font-size: 11.5px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+  }
+  .meta-tab h3:first-child { margin-top: 2px; }
+  .meta-tab .header-title { font-size: 15px; font-weight: 600; margin: 0 0 4px 0; }
+  .meta-tab .header-meta {
+    color: var(--muted); font-size: 11.5px; margin-bottom: 6px; word-break: break-all;
+  }
+  .meta-tab .header-meta code {
+    background: var(--panel2); padding: 1px 5px; border-radius: 3px; font-size: 11px;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip {
+    background: var(--chip-bg); color: var(--chip-text);
+    padding: 3px 7px 3px 10px; border-radius: 999px; font-size: 12px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .chip.added { background: var(--added); color: #b6f0c5; }
+  .chip.removed {
+    background: var(--removed); color: #ffb3b3; text-decoration: line-through;
+  }
+  .chip button {
+    background: transparent; border: 0; color: inherit; cursor: pointer;
+    font-size: 13px; padding: 0; line-height: 1; opacity: 0.7;
+  }
+  .chip button:hover { opacity: 1; }
+
+  .picker { margin-top: 8px; }
+  .picker .seed-row {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px;
+  }
+  .picker .seed-row button {
+    background: var(--panel2); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 2px 8px; font-size: 11px; cursor: pointer;
+  }
+  .picker .seed-row button:hover { color: var(--text); border-color: var(--accent); }
+  .picker .seed-row button.has { display: none; }
+
+  .autocomplete { position: relative; }
+  .autocomplete input {
+    width: 100%; padding: 6px 10px; background: var(--panel2);
+    border: 1px solid var(--border); border-radius: 6px; color: var(--text);
+    font: inherit;
+  }
+  .autocomplete .results {
+    position: absolute; left: 0; right: 0; top: 100%;
+    background: var(--panel3); border: 1px solid var(--border);
+    border-top: 0; border-radius: 0 0 6px 6px; max-height: 220px;
+    overflow-y: auto; z-index: 10; display: none;
+  }
+  .autocomplete .results.show { display: block; }
+  .autocomplete .results div {
+    padding: 5px 10px; cursor: pointer; font-size: 12.5px;
+  }
+  .autocomplete .results div.focus, .autocomplete .results div:hover {
+    background: var(--panel2);
+  }
+  .date-row {
+    display: grid;
+    grid-template-columns: 70px 1fr 60px;
+    gap: 6px;
+  }
+  .date-row .date-input {
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 8px; font: inherit;
+  }
+  .date-row select.date-input { padding: 5px 6px; }
+  .ocr-picker { display: flex; gap: 4px; flex-wrap: wrap; }
+  .ocr-picker button {
+    background: var(--panel2); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 3px 10px; font-size: 11.5px; cursor: pointer;
+    text-transform: capitalize;
+  }
+  .ocr-picker button:hover { color: var(--text); border-color: var(--accent); }
+  .ocr-picker button.on { background: var(--accent); color: #0b1020; border-color: var(--accent); font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Document Tagger</h1>
+  <span class="meta" id="header-meta"></span>
+  <div class="spacer"></div>
+  <span class="meta">Pending: <span class="pending-badge" id="pending-count">0</span></span>
+  <button id="clear-btn" title="Clear all pending edits">Clear</button>
+  <button id="export-btn" class="primary">Export Changes</button>
+</header>
+<main>
+  <aside class="list">
+    <input id="search" class="search" placeholder="Search documents…" />
+    <div class="view-toggle">
+      <button data-view="primary" class="on">Primary <span class="n" id="vt-primary-n"></span></button>
+      <button data-view="sidecars">Sidecars <span class="n" id="vt-sidecars-n"></span></button>
+    </div>
+    <div class="filter-row">
+      <button class="filter on" data-filter="all">All</button>
+      <button class="filter" data-filter="untagged">Untagged</button>
+      <button class="filter" data-filter="dirty">Edited</button>
+      <button class="filter" data-filter="paired">Has translation/notes</button>
+      <button class="filter" data-filter="needs-cleaning">Needs cleaning</button>
+    </div>
+    <div class="type-section">
+      <button class="type-toggle" id="type-toggle">
+        <span>Types <span class="caret" id="type-caret">▸</span></span>
+        <span class="count" id="type-count">none selected</span>
+      </button>
+      <div class="type-chips" id="type-chips"></div>
+    </div>
+    <div class="type-section">
+      <button class="type-toggle" id="ocr-toggle">
+        <span>OCR confidence <span class="caret" id="ocr-caret">▸</span></span>
+        <span class="count" id="ocr-count">none selected</span>
+      </button>
+      <div class="type-chips" id="ocr-chips"></div>
+    </div>
+    <div class="type-section">
+      <button class="type-toggle" id="branch-toggle">
+        <span>Family branch <span class="caret" id="branch-caret">▸</span></span>
+        <span class="count" id="branch-count">none selected</span>
+      </button>
+      <div class="type-chips" id="branch-chips"></div>
+    </div>
+    <div class="type-section">
+      <button class="type-toggle" id="lang-toggle">
+        <span>Language <span class="caret" id="lang-caret">▸</span></span>
+        <span class="count" id="lang-count">none selected</span>
+      </button>
+      <div class="type-chips" id="lang-chips"></div>
+    </div>
+    <div id="doc-list"></div>
+  </aside>
+  <section class="doc">
+    <div class="doc-toolbar" id="doc-toolbar" style="display:none">
+      <span class="name" id="doc-name"></span>
+      <div class="spacer"></div>
+      <span class="meta" id="doc-type"></span>
+      <a id="doc-open-ext" class="open-ext" target="_blank" rel="noopener" style="display:none"></a>
+    </div>
+    <div class="doc-area" id="doc-area">
+      <div class="doc-empty">Select a document on the left to begin tagging.</div>
+    </div>
+  </section>
+  <aside class="panel" id="panel">
+    <div class="tab-bar" id="tab-bar"></div>
+    <div class="tab-body" id="tab-body">
+      <div class="empty">No document selected.</div>
+    </div>
+  </aside>
+</main>
+
+<script id="data" type="application/json">{"generated_at": "2026-05-31T18:48:19", "docs": [{"id": "1920-us-census-riverstone-household-philadelphia", "title": "1920 US Census — Riverstone household, Philadelphia", "sidecar": "sources/1920-us-census-riverstone-household-philadelphia.md", "type": "census", "date": "1920-01-15", "main": {"kind": "markdown", "src": null, "name": null, "text": "\n# 1920 US Census — Riverstone household, Philadelphia\n\n## Description\n\nPage 14B of the 1920 US Federal Census, Philadelphia Ward 17, Enumeration\nDistrict 327. Enumerator: Helen J. Murphy. Date of enumeration:\nJanuary 15, 1920. The Riverstone household occupies lines 73–76.\n\n## Extracted Facts\n\n| Line | Name | Age | Birthplace | Year of imm. | Occupation |\n|---|---|---|---|---|---|\n| 73 | Riverstone, Henry | 34 | Germany | 1912 | Cabinet maker — own shop |\n| 74 | Riverstone, Clara | 29 | Germany | 1912 | Bookkeeper — own shop |\n| 75 | Riverstone, Mary | 4 | Pennsylvania | — | — |\n| 76 | Riverstone, Friedrich | 1 | Pennsylvania | — | — |\n\n- **Address:** 1837 N 5th Street, Philadelphia.\n- Heinrich and Klara both Anglicized their names by 1920 (\"Henry,\"\n  \"Clara\"). Mary stayed \"Mary\"; Friedrich kept the German form.\n- The shop already operated by 1920 (consistent with the family's\n  founding date of 1915).\n- Else (b. 1922) is not yet in the household.\n\n## Related People\n\n- [[Heinrich Riverstone (1885)]]\n- [[Klara Adler (1890)]]\n- [[Mary Riverstone (1915)]]\n- [[Friedrich Riverstone (1918)]]\n\n## Source\n\n![[1920-us-census-riverstone-household-philadelphia.pdf]]\n"}, "translation": null, "notes": null, "transcription": null, "related_people": ["[[Heinrich Riverstone (1885)]]", "[[Klara Adler (1890)]]", "[[Mary Riverstone (1915)]]", "[[Friedrich Riverstone (1918)]]"], "places": [], "languages": ["[\"English\"]"], "topics": ["immigration", "occupation", "residence"], "is_synthesis": false, "body_text": null, "sidecar_raw": "---\ntitle: \"1920 US Census — Riverstone household, Philadelphia\"\ntype: census\ndate: \"1920-01-15\"\nauthor: \"\"\nrecipients: []\nrelated_people:\n  - \"[[Heinrich Riverstone (1885)]]\"\n  - \"[[Klara Adler (1890)]]\"\n  - \"[[Mary Riverstone (1915)]]\"\n  - \"[[Friedrich Riverstone (1918)]]\"\nsource: \"[[1920-us-census-riverstone-household-philadelphia.pdf]]\"\nlanguages: [\"English\"]\ntopics:\n  - \"immigration\"\n  - \"occupation\"\n  - \"residence\"\nconfidence: proven\n---\n\n# 1920 US Census — Riverstone household, Philadelphia\n\n## Description\n\nPage 14B of the 1920 US Federal Census, Philadelphia Ward 17, Enumeration\nDistrict 327. Enumerator: Helen J. Murphy. Date of enumeration:\nJanuary 15, 1920. The Riverstone household occupies lines 73–76.\n\n## Extracted Facts\n\n| Line | Name | Age | Birthplace | Year of imm. | Occupation |\n|---|---|---|---|---|---|\n| 73 | Riverstone, Henry | 34 | Germany | 1912 | Cabinet maker — own shop |\n| 74 | Riverstone, Clara | 29 | Germany | 1912 | Bookkeeper — own shop |\n| 75 | Riverstone, Mary | 4 | Pennsylvania | — | — |\n| 76 | Riverstone, Friedrich | 1 | Pennsylvania | — | — |\n\n- **Address:** 1837 N 5th Street, Philadelphia.\n- Heinrich and Klara both Anglicized their names by 1920 (\"Henry,\"\n  \"Clara\"). Mary stayed \"Mary\"; Friedrich kept the German form.\n- The shop already operated by 1920 (consistent with the family's\n  founding date of 1915).\n- Else (b. 1922) is not yet in the household.\n\n## Related People\n\n- [[Heinrich Riverstone (1885)]]\n- [[Klara Adler (1890)]]\n- [[Mary Riverstone (1915)]]\n- [[Friedrich Riverstone (1918)]]\n\n## Source\n\n![[1920-us-census-riverstone-household-philadelphia.pdf]]\n", "cleaned_text_status": "missing", "cleaned_text": "", "source_stems": ["1920-us-census-riverstone-household-philadelphia"], "ocr_confidence": "", "places_field": "places", "referenced_by": [], "related_cluster": [], "related_by_people": [{"id": "1992-mary-brennan-death-certificate", "overlap": 3}, {"id": "1937-letter-from-heinrich-to-klara-vienna", "overlap": 2}, {"id": "1937-mary-thomas-marriage-record", "overlap": 1}], "branches": ["Heinrich (root)", "Heinrich (root, married in)", "Heinrich → Friedrich (no descendants)", "Heinrich → Mary"]}, {"id": "1937-letter-from-heinrich-to-klara-vienna", "title": "1937 letter from Heinrich Riverstone to Klara, written from Vienna", "sidecar": "sources/1937-letter-from-heinrich-to-klara-vienna.md", "type": "correspondence", "date": "1937-08-14", "main": {"kind": "markdown", "src": null, "name": null, "text": "\n# 1937 letter from Heinrich Riverstone to Klara, written from Vienna\n\n## Description\n\nA two-page letter from Heinrich to Klara dated August 14, 1937, written\nfrom his brother Karl's apartment in Vienna. Heinrich visited Karl after\nnews of his worsening cardiac condition. The letter is in German cursive\non hotel stationery, slightly water-damaged along the bottom edge.\n\nThis was Heinrich's last trip to Europe.\n\n## Cleaned Text\n\n> Wien, am 14. August 1937\n>\n> Meine liebste Klara,\n>\n> Karl ist schwächer als ich gedacht hatte. Der Arzt hat heute Morgen\n> mit mir gesprochen — sein Herz wird es nicht mehr lange machen. Ich\n> bleibe noch eine Woche, vielleicht zehn Tage. Bitte schreibe Mary daß\n> ich ihr Geburtstagsgeschenk dieses Jahr nicht persönlich überbringen\n> kann.\n>\n> Die Stadt ist nicht mehr die Stadt aus unserer Jugend, Klara. Die\n> Hakenkreuze in den Fenstern, die Uniformen auf jeder Straße. Karl sagt\n> die Lage wird schlimmer, nicht besser. Wir reden über die Kinder, über\n> Philadelphia, über die Werkstatt. Manchmal vergesse ich, daß ich seit\n> 25 Jahren nicht hier war.\n>\n> Küsse die Kinder von mir. Friedrich soll sich gut um den Laden kümmern\n> während ich fort bin — sage ihm das.\n>\n> Dein,\n> Heinrich\n\n(For an English rendering, see the Translation tab —\n`1937-letter-from-heinrich-to-klara-vienna-english-translation.md`.)\n\n## Extracted Facts\n\n- **1937-08-14** — Heinrich was in Vienna at his brother Karl's\n  apartment. (Confirms a previously-undocumented sibling: Karl Riverstone.)\n- Karl Riverstone had a serious heart condition in 1937; per the\n  letter, the doctor expected he wouldn't live long. (Karl's death\n  date is not otherwise documented in this vault — likely late 1937\n  or 1938. See `OPEN-QUESTIONS.md`.)\n- Heinrich had not been to Vienna in 25 years (i.e., since 1912 —\n  consistent with his immigration date).\n- Friedrich (age 19) was working at the family furniture shop.\n\n## Related People\n\n- [[Heinrich Riverstone (1885)]] — author\n- [[Klara Adler (1890)]] — recipient\n- (Karl Riverstone — mentioned but no file yet; see `OPEN-QUESTIONS.md`)\n\n## Source\n\n![[1937-letter-from-heinrich-to-klara-vienna.pdf]]\n\n(Original scan not shipped with the demo — see `demo/README.md` § Binary\nassets. Drop a sample PDF named exactly this stem into `demo/sources/`\nto exercise the OCR pipeline against it.)\n"}, "translation": {"name": "1937-letter-from-heinrich-to-klara-vienna-english-translation.md", "text": "\n# English translation — 1937 letter from Heinrich to Klara (Vienna)\n\n**Translator's note.** Heinrich's prewar German is straightforward —\nformal but not literary — except in the second paragraph, where he\nslips into a more idiomatic, almost wistful register when speaking of\nVienna. I've tried to preserve that shift in the English. \"Werkstatt\"\nis rendered \"shop\" rather than \"workshop\" because that's what the\nfamily called the Philadelphia store.\n\n## Translation\n\n> Vienna, August 14, 1937\n>\n> My dearest Klara,\n>\n> Karl is weaker than I had thought. The doctor spoke with me this\n> morning — his heart won't hold out much longer. I will stay another\n> week, perhaps ten days. Please write to Mary and tell her I cannot\n> bring her birthday present in person this year.\n>\n> The city is no longer the city of our youth, Klara. The swastikas in\n> the windows, the uniforms on every street. Karl says it will get\n> worse, not better. We talk about the children, about Philadelphia,\n> about the shop. Sometimes I forget that I have not been here in\n> twenty-five years.\n>\n> Kiss the children for me. Tell Friedrich to take good care of the\n> shop while I am away.\n>\n> Yours,\n> Heinrich\n\n## Translation Notes\n\n- **\"Die Hakenkreuze in den Fenstern\"** — literally \"the hooked-crosses\n  in the windows.\" I've used the now-conventional English \"swastikas.\"\n  Heinrich's term is the neutral compound, not the loaded loanword.\n- **\"Werkstatt\"** — workshop, but I've used \"shop\" because that's\n  how the family referred to **Riverstone Furniture & Cabinetry**.\n- **\"Sich gut um etwas kümmern\"** — to take good care of something /\n  to look after. The English doesn't quite capture the gentle\n  paternal tone; Heinrich is asking, not ordering.\n- **Date format**: German \"am 14. August 1937\" rendered as \"August 14,\n  1937\" per US convention for this vault.\n"}, "notes": null, "transcription": null, "related_people": ["[[Heinrich Riverstone (1885)]]", "[[Klara Adler (1890)]]"], "places": [], "languages": ["[\"German\"]"], "topics": ["family illness", "travel", "interwar Vienna"], "is_synthesis": false, "body_text": null, "sidecar_raw": "---\ntitle: \"1937 letter from Heinrich Riverstone to Klara, written from Vienna\"\ntype: correspondence\ndate: \"1937-08-14\"\nauthor: \"[[Heinrich Riverstone (1885)]]\"\nrecipients:\n  - \"[[Klara Adler (1890)]]\"\nrelated_people:\n  - \"[[Heinrich Riverstone (1885)]]\"\n  - \"[[Klara Adler (1890)]]\"\nsource: \"[[1937-letter-from-heinrich-to-klara-vienna.pdf]]\"\nlanguages: [\"German\"]\ntopics:\n  - \"family illness\"\n  - \"travel\"\n  - \"interwar Vienna\"\nconfidence: proven\n\ntranslation: \"1937-letter-from-heinrich-to-klara-vienna-english-translation.md\"\nnotes: \"\"\ntranscription: \"\"\ncontent: \"\"\n---\n\n# 1937 letter from Heinrich Riverstone to Klara, written from Vienna\n\n## Description\n\nA two-page letter from Heinrich to Klara dated August 14, 1937, written\nfrom his brother Karl's apartment in Vienna. Heinrich visited Karl after\nnews of his worsening cardiac condition. The letter is in German cursive\non hotel stationery, slightly water-damaged along the bottom edge.\n\nThis was Heinrich's last trip to Europe.\n\n## Cleaned Text\n\n> Wien, am 14. August 1937\n>\n> Meine liebste Klara,\n>\n> Karl ist schwächer als ich gedacht hatte. Der Arzt hat heute Morgen\n> mit mir gesprochen — sein Herz wird es nicht mehr lange machen. Ich\n> bleibe noch eine Woche, vielleicht zehn Tage. Bitte schreibe Mary daß\n> ich ihr Geburtstagsgeschenk dieses Jahr nicht persönlich überbringen\n> kann.\n>\n> Die Stadt ist nicht mehr die Stadt aus unserer Jugend, Klara. Die\n> Hakenkreuze in den Fenstern, die Uniformen auf jeder Straße. Karl sagt\n> die Lage wird schlimmer, nicht besser. Wir reden über die Kinder, über\n> Philadelphia, über die Werkstatt. Manchmal vergesse ich, daß ich seit\n> 25 Jahren nicht hier war.\n>\n> Küsse die Kinder von mir. Friedrich soll sich gut um den Laden kümmern\n> während ich fort bin — sage ihm das.\n>\n> Dein,\n> Heinrich\n\n(For an English rendering, see the Translation tab —\n`1937-letter-from-heinrich-to-klara-vienna-english-translation.md`.)\n\n## Extracted Facts\n\n- **1937-08-14** — Heinrich was in Vienna at his brother Karl's\n  apartment. (Confirms a previously-undocumented sibling: Karl Riverstone.)\n- Karl Riverstone had a serious heart condition in 1937; per the\n  letter, the doctor expected he wouldn't live long. (Karl's death\n  date is not otherwise documented in this vault — likely late 1937\n  or 1938. See `OPEN-QUESTIONS.md`.)\n- Heinrich had not been to Vienna in 25 years (i.e., since 1912 —\n  consistent with his immigration date).\n- Friedrich (age 19) was working at the family furniture shop.\n\n## Related People\n\n- [[Heinrich Riverstone (1885)]] — author\n- [[Klara Adler (1890)]] — recipient\n- (Karl Riverstone — mentioned but no file yet; see `OPEN-QUESTIONS.md`)\n\n## Source\n\n![[1937-letter-from-heinrich-to-klara-vienna.pdf]]\n\n(Original scan not shipped with the demo — see `demo/README.md` § Binary\nassets. Drop a sample PDF named exactly this stem into `demo/sources/`\nto exercise the OCR pipeline against it.)\n", "cleaned_text_status": "has-text", "cleaned_text": "> Wien, am 14. August 1937\n>\n> Meine liebste Klara,\n>\n> Karl ist schwächer als ich gedacht hatte. Der Arzt hat heute Morgen\n> mit mir gesprochen — sein Herz wird es nicht mehr lange machen. Ich\n> bleibe noch eine Woche, vielleicht zehn Tage. Bitte schreibe Mary daß\n> ich ihr Geburtstagsgeschenk dieses Jahr nicht persönlich überbringen\n> kann.\n>\n> Die Stadt ist nicht mehr die Stadt aus unserer Jugend, Klara. Die\n> Hakenkreuze in den Fenstern, die Uniformen auf jeder Straße. Karl sagt\n> die Lage wird schlimmer, nicht besser. Wir reden über die Kinder, über\n> Philadelphia, über die Werkstatt. Manchmal vergesse ich, daß ich seit\n> 25 Jahren nicht hier war.\n>\n> Küsse die Kinder von mir. Friedrich soll sich gut um den Laden kümmern\n> während ich fort bin — sage ihm das.\n>\n> Dein,\n> Heinrich\n\n(For an English rendering, see the Translation tab —\n`1937-letter-from-heinrich-to-klara-vienna-english-translation.md`.)", "source_stems": ["1937-letter-from-heinrich-to-klara-vienna"], "ocr_confidence": "", "places_field": "places", "referenced_by": [], "related_cluster": [], "related_by_people": [{"id": "1920-us-census-riverstone-household-philadelphia", "overlap": 2}, {"id": "1992-mary-brennan-death-certificate", "overlap": 2}], "branches": ["Heinrich (root)", "Heinrich (root, married in)"]}, {"id": "1937-mary-thomas-marriage-record", "title": "1937 marriage record — Mary Riverstone & Thomas Brennan", "sidecar": "sources/1937-mary-thomas-marriage-record.md", "type": "marriage-record", "date": "1937-09-11", "main": {"kind": "markdown", "src": null, "name": null, "text": "\n# 1937 marriage record — Mary Riverstone & Thomas Brennan\n\n## Description\n\nSuffolk County, Massachusetts civil marriage register entry,\nSeptember 11, 1937. Volume 412, Page 89, License #14437. Marriage\nperformed by Justice of the Peace Edward R. Connolly at Boston City\nHall.\n\n## Extracted Facts\n\n| Field | Value |\n|---|---|\n| Date of marriage | **September 11, 1937** (Saturday) |\n| Bride | Mary Riverstone, age 22, of Philadelphia, PA |\n| Groom | Thomas Brennan, age 25, of Cambridge, MA |\n| Bride's father | Henry Riverstone (occupation: cabinet maker) |\n| Bride's mother | Clara Adler |\n| Groom's father | \"Unknown\" (left blank by groom) |\n| Groom's mother | \"Unknown\" (left blank by groom) |\n| Witnesses | Friedrich Riverstone; Margaret Walsh |\n| Officiant | Edward R. Connolly, JP |\n\n## Related People\n\n- [[Mary Riverstone (1915)]]\n- [[Thomas Brennan (1912)]]\n- (Friedrich Riverstone — witness)\n\n## Notes\n\n**Date discrepancy.** A separate **church record** (First Lutheran\nChurch of Boston) records the marriage as September 18, 1937. The\ncivil record is primary; the church record likely reflects a later\nreligious ceremony (common at the time for civil weddings of\nmixed-faith couples — Thomas was Catholic, Mary Lutheran by upbringing).\n\nThis discrepancy is recorded on Mary's person file\n([[Mary Riverstone (1915)]]) under `## Research Notes`.\n\n**Thomas's parents marked \"Unknown.\"** This is the first formal\ndocumentation of Thomas's silence about his family of origin. The blank\nwas filled in his own hand per the register's marginal note.\n\n## Source\n\n![[1937-mary-thomas-marriage-record.pdf]]\n"}, "translation": null, "notes": null, "transcription": null, "related_people": ["[[Mary Riverstone (1915)]]", "[[Thomas Brennan (1912)]]"], "places": [], "languages": ["[\"English\"]"], "topics": ["marriage"], "is_synthesis": false, "body_text": null, "sidecar_raw": "---\ntitle: \"1937 marriage record — Mary Riverstone & Thomas Brennan\"\ntype: marriage-record\ndate: \"1937-09-11\"\nauthor: \"\"\nrecipients: []\nrelated_people:\n  - \"[[Mary Riverstone (1915)]]\"\n  - \"[[Thomas Brennan (1912)]]\"\nsource: \"[[1937-mary-thomas-marriage-record.pdf]]\"\nlanguages: [\"English\"]\ntopics:\n  - \"marriage\"\nconfidence: proven\n---\n\n# 1937 marriage record — Mary Riverstone & Thomas Brennan\n\n## Description\n\nSuffolk County, Massachusetts civil marriage register entry,\nSeptember 11, 1937. Volume 412, Page 89, License #14437. Marriage\nperformed by Justice of the Peace Edward R. Connolly at Boston City\nHall.\n\n## Extracted Facts\n\n| Field | Value |\n|---|---|\n| Date of marriage | **September 11, 1937** (Saturday) |\n| Bride | Mary Riverstone, age 22, of Philadelphia, PA |\n| Groom | Thomas Brennan, age 25, of Cambridge, MA |\n| Bride's father | Henry Riverstone (occupation: cabinet maker) |\n| Bride's mother | Clara Adler |\n| Groom's father | \"Unknown\" (left blank by groom) |\n| Groom's mother | \"Unknown\" (left blank by groom) |\n| Witnesses | Friedrich Riverstone; Margaret Walsh |\n| Officiant | Edward R. Connolly, JP |\n\n## Related People\n\n- [[Mary Riverstone (1915)]]\n- [[Thomas Brennan (1912)]]\n- (Friedrich Riverstone — witness)\n\n## Notes\n\n**Date discrepancy.** A separate **church record** (First Lutheran\nChurch of Boston) records the marriage as September 18, 1937. The\ncivil record is primary; the church record likely reflects a later\nreligious ceremony (common at the time for civil weddings of\nmixed-faith couples — Thomas was Catholic, Mary Lutheran by upbringing).\n\nThis discrepancy is recorded on Mary's person file\n([[Mary Riverstone (1915)]]) under `## Research Notes`.\n\n**Thomas's parents marked \"Unknown.\"** This is the first formal\ndocumentation of Thomas's silence about his family of origin. The blank\nwas filled in his own hand per the register's marginal note.\n\n## Source\n\n![[1937-mary-thomas-marriage-record.pdf]]\n", "cleaned_text_status": "missing", "cleaned_text": "", "source_stems": ["1937-mary-thomas-marriage-record"], "ocr_confidence": "", "places_field": "places", "referenced_by": [], "related_cluster": [], "related_by_people": [{"id": "1992-mary-brennan-death-certificate", "overlap": 2}, {"id": "1920-us-census-riverstone-household-philadelphia", "overlap": 1}], "branches": ["Heinrich → Mary", "Mary (married in)"]}, {"id": "1992-mary-brennan-death-certificate", "title": "1992 Mary Brennan death certificate", "sidecar": "sources/1992-mary-brennan-death-certificate.md", "type": "death-record", "date": "1992-02-18", "main": {"kind": "markdown", "src": null, "name": null, "text": "\n# 1992 Mary Brennan death certificate\n\n## Description\n\nMassachusetts Department of Public Health Certificate of Death.\nFile #014-92-002847. Issued February 22, 1992.\n\n## Extracted Facts\n\n| Field | Value |\n|---|---|\n| Decedent | Mary Riverstone Brennan |\n| Date of death | February 18, 1992, 4:17 AM |\n| Place of death | Massachusetts General Hospital, Boston, MA |\n| Age at death | 76 years, 6 months |\n| Date of birth | August 4, 1915 |\n| Place of birth | Philadelphia, Pennsylvania |\n| Sex | Female |\n| Marital status | Widowed (since 1989) |\n| Spouse's name | Thomas Brennan (deceased 1989) |\n| Father | Henry Riverstone (born Germany) |\n| Mother (maiden) | Clara Adler (born Germany) |\n| Occupation | Teacher, retired (Boston Latin Academy, 1942–1980) |\n| Cause of death | (a) Cerebrovascular accident (b) Atherosclerosis |\n| Informant | Catherine Brennan (daughter), 17 Russell Street, Cambridge, MA |\n| Burial | February 22, 1992, Mount Auburn Cemetery, Cambridge, MA |\n\n## Related People\n\n- [[Mary Riverstone (1915)]] — decedent\n- [[Thomas Brennan (1912)]] — predeceased spouse\n- [[Heinrich Riverstone (1885)]] — father\n- [[Klara Adler (1890)]] — mother\n- [[Catherine Brennan (1940)]] — informant\n\n## Notes\n\nThis is the authoritative source for Mary's vital data (birth date,\ndeath date, parents' names) and confirms Heinrich's Anglicized \"Henry\"\nand Klara's Anglicized \"Clara\" — both rendered here in their\npreferred English forms even on an official document, decades after\ntheir own deaths.\n\nThe certificate's \"place of birth\" (Philadelphia) and Mary's parents'\n\"born Germany\" together corroborate the 1920 census data.\n\n## Source\n\n![[1992-mary-brennan-death-certificate.pdf]]\n"}, "translation": null, "notes": null, "transcription": null, "related_people": ["[[Mary Riverstone (1915)]]", "[[Thomas Brennan (1912)]]", "[[Heinrich Riverstone (1885)]]", "[[Klara Adler (1890)]]", "[[Catherine Brennan (1940)]]"], "places": [], "languages": ["[\"English\"]"], "topics": ["death", "vital records"], "is_synthesis": false, "body_text": null, "sidecar_raw": "---\ntitle: \"1992 Mary Brennan death certificate\"\ntype: death-record\ndate: \"1992-02-18\"\nauthor: \"\"\nrecipients: []\nrelated_people:\n  - \"[[Mary Riverstone (1915)]]\"\n  - \"[[Thomas Brennan (1912)]]\"\n  - \"[[Heinrich Riverstone (1885)]]\"\n  - \"[[Klara Adler (1890)]]\"\n  - \"[[Catherine Brennan (1940)]]\"\nsource: \"[[1992-mary-brennan-death-certificate.pdf]]\"\nlanguages: [\"English\"]\ntopics:\n  - \"death\"\n  - \"vital records\"\nconfidence: proven\n---\n\n# 1992 Mary Brennan death certificate\n\n## Description\n\nMassachusetts Department of Public Health Certificate of Death.\nFile #014-92-002847. Issued February 22, 1992.\n\n## Extracted Facts\n\n| Field | Value |\n|---|---|\n| Decedent | Mary Riverstone Brennan |\n| Date of death | February 18, 1992, 4:17 AM |\n| Place of death | Massachusetts General Hospital, Boston, MA |\n| Age at death | 76 years, 6 months |\n| Date of birth | August 4, 1915 |\n| Place of birth | Philadelphia, Pennsylvania |\n| Sex | Female |\n| Marital status | Widowed (since 1989) |\n| Spouse's name | Thomas Brennan (deceased 1989) |\n| Father | Henry Riverstone (born Germany) |\n| Mother (maiden) | Clara Adler (born Germany) |\n| Occupation | Teacher, retired (Boston Latin Academy, 1942–1980) |\n| Cause of death | (a) Cerebrovascular accident (b) Atherosclerosis |\n| Informant | Catherine Brennan (daughter), 17 Russell Street, Cambridge, MA |\n| Burial | February 22, 1992, Mount Auburn Cemetery, Cambridge, MA |\n\n## Related People\n\n- [[Mary Riverstone (1915)]] — decedent\n- [[Thomas Brennan (1912)]] — predeceased spouse\n- [[Heinrich Riverstone (1885)]] — father\n- [[Klara Adler (1890)]] — mother\n- [[Catherine Brennan (1940)]] — informant\n\n## Notes\n\nThis is the authoritative source for Mary's vital data (birth date,\ndeath date, parents' names) and confirms Heinrich's Anglicized \"Henry\"\nand Klara's Anglicized \"Clara\" — both rendered here in their\npreferred English forms even on an official document, decades after\ntheir own deaths.\n\nThe certificate's \"place of birth\" (Philadelphia) and Mary's parents'\n\"born Germany\" together corroborate the 1920 census data.\n\n## Source\n\n![[1992-mary-brennan-death-certificate.pdf]]\n", "cleaned_text_status": "missing", "cleaned_text": "", "source_stems": ["1992-mary-brennan-death-certificate"], "ocr_confidence": "", "places_field": "places", "referenced_by": [], "related_cluster": [], "related_by_people": [{"id": "1920-us-census-riverstone-household-philadelphia", "overlap": 3}, {"id": "1937-letter-from-heinrich-to-klara-vienna", "overlap": 2}, {"id": "1937-mary-thomas-marriage-record", "overlap": 2}], "branches": ["Heinrich (root)", "Heinrich (root, married in)", "Heinrich → Mary", "Mary", "Mary (married in)"]}], "people": ["[[Aaron Adler]]", "[[Carl Sandstrom (1920)]]", "[[Catherine Brennan (1940)]]", "[[Else Riverstone (1922)]]", "[[Friedrich Riverstone (1918)]]", "[[Heinrich Riverstone (1885)]]", "[[Klara Adler (1890)]]", "[[Linda Sandstrom (1950)]]", "[[Mary Riverstone (1915)]]", "[[Thomas Brennan (1912)]]"], "topic_seed": ["banking-finance", "immigration-travel", "vital-records", "military", "correspondence-personal", "religious", "business-employment", "property-legal", "education", "holocaust-persecution", "news-obituary", "research-notes"], "language_seed": ["Polish", "Russian", "Yiddish", "Hebrew", "German", "English", "Norwegian", "Lithuanian", "French", "Latin"], "type_distribution": [["census", 1], ["correspondence", 1], ["death-record", 1], ["marriage-record", 1]], "ocr_distribution": [["(not set)", 4]], "branch_distribution": [["Heinrich (root)", 3], ["Heinrich (root, married in)", 3], ["Heinrich → Mary", 3], ["Mary (married in)", 2], ["Heinrich → Friedrich (no descendants)", 1], ["Mary", 1]], "language_distribution": [["[\"English\"]", 3], ["[\"German\"]", 1]]}</script>
+<script>
+const DATA = JSON.parse(document.getElementById('data').textContent);
+const STORAGE_KEY = 'document-tagger-edits-v1';
+
+const TAG_FIELDS = ['related_people', 'places', 'languages', 'topics'];
+
+// edits[id] = {
+//   <field>: { add: Set<string>, remove: Set<string> } for field in TAG_FIELDS
+//   date: string|undefined
+// }
+function loadEdits() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    const out = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      out[k] = {};
+      for (const f of TAG_FIELDS) {
+        const e = v[f] || { add: [], remove: [] };
+        out[k][f] = { add: new Set(e.add || []), remove: new Set(e.remove || []) };
+      }
+      if (v.date != null) out[k].date = v.date;
+      if (v.ocr_confidence !== undefined) out[k].ocr_confidence = v.ocr_confidence;
+    }
+    return out;
+  } catch (e) { return {}; }
+}
+function saveEdits() {
+  const serial = {};
+  for (const [k, v] of Object.entries(edits)) {
+    if (!isDirty(k)) continue;
+    serial[k] = {};
+    for (const f of TAG_FIELDS) {
+      serial[k][f] = { add: [...v[f].add], remove: [...v[f].remove] };
+    }
+    if (v.date != null) serial[k].date = v.date;
+    if (v.ocr_confidence !== undefined) serial[k].ocr_confidence = v.ocr_confidence;
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(serial));
+}
+
+let edits = loadEdits();
+let selectedId = null;
+let currentTab = 'metadata';
+let currentFilter = 'all';
+let selectedTypes = loadSelectedTypes();
+let typesExpanded = false;
+let selectedOcr = loadSelectedOcr();
+let ocrExpanded = false;
+let selectedBranches = loadSelectedBranches();
+let branchesExpanded = false;
+let selectedLanguages = loadSelectedLanguages();
+let languagesExpanded = false;
+let currentView = localStorage.getItem('document-tagger-view-v1') || 'primary'; // 'primary' | 'sidecars'
+let translationView = localStorage.getItem('document-tagger-translation-view-v1') || 'side-by-side'; // 'stacked' | 'side-by-side'
+
+const LANG_FILTER_KEY = 'document-tagger-language-filter-v1';
+function loadSelectedLanguages() {
+  try {
+    const raw = localStorage.getItem(LANG_FILTER_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw));
+  } catch (e) { return new Set(); }
+}
+function saveSelectedLanguages() {
+  localStorage.setItem(LANG_FILTER_KEY, JSON.stringify([...selectedLanguages]));
+}
+function docLanguages(d) {
+  const list = d.languages || [];
+  return list.length ? list : ['(none)'];
+}
+
+const BRANCH_FILTER_KEY = 'document-tagger-branch-filter-v1';
+function loadSelectedBranches() {
+  try {
+    const raw = localStorage.getItem(BRANCH_FILTER_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw));
+  } catch (e) { return new Set(); }
+}
+function saveSelectedBranches() {
+  localStorage.setItem(BRANCH_FILTER_KEY, JSON.stringify([...selectedBranches]));
+}
+function docBranches(d) {
+  const list = d.branches || [];
+  return list.length ? list : ['(no branch)'];
+}
+
+const OCR_FILTER_KEY = 'document-tagger-ocr-filter-v1';
+function loadSelectedOcr() {
+  try {
+    const raw = localStorage.getItem(OCR_FILTER_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw));
+  } catch (e) { return new Set(); }
+}
+function saveSelectedOcr() {
+  localStorage.setItem(OCR_FILTER_KEY, JSON.stringify([...selectedOcr]));
+}
+function ocrEffective(doc) {
+  const e = edits[doc.id];
+  if (e && e.ocr_confidence !== undefined) return e.ocr_confidence || '';
+  return doc.ocr_confidence || '';
+}
+function ocrBucket(val) {
+  return val ? val : '(not set)';
+}
+
+const TYPE_FILTER_KEY = 'document-tagger-type-filter-v1';
+function loadSelectedTypes() {
+  try {
+    const raw = localStorage.getItem(TYPE_FILTER_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw));
+  } catch (e) { return new Set(); }
+}
+function saveSelectedTypes() {
+  localStorage.setItem(TYPE_FILTER_KEY, JSON.stringify([...selectedTypes]));
+}
+
+function ensureEdit(id) {
+  if (!edits[id]) {
+    edits[id] = {};
+    for (const f of TAG_FIELDS) edits[id][f] = { add: new Set(), remove: new Set() };
+  }
+  return edits[id];
+}
+function isDirty(id) {
+  const e = edits[id]; if (!e) return false;
+  for (const f of TAG_FIELDS) {
+    if (e[f].add.size || e[f].remove.size) return true;
+  }
+  if (e.date != null) return true;
+  if (e.ocr_confidence !== undefined) return true;
+  return false;
+}
+function pendingTotal() {
+  return Object.keys(edits).filter(isDirty).length;
+}
+function effectiveTags(doc, field) {
+  const base = new Set(doc[field] || []);
+  const e = edits[doc.id];
+  if (e && e[field]) {
+    for (const t of e[field].remove) base.delete(t);
+    for (const t of e[field].add) base.add(t);
+  }
+  return [...base];
+}
+function isUntagged(doc) {
+  return effectiveTags(doc, 'related_people').length === 0
+      && effectiveTags(doc, 'topics').length === 0;
+}
+function parseDate(s) {
+  if (!s) return { y: '', m: '', d: '' };
+  const m = String(s).trim().match(/^(\d{4})(?:[-/](\d{1,2}))?(?:[-/](\d{1,2}))?$/);
+  if (!m) return { y: String(s), m: '', d: '' };
+  return {
+    y: m[1] || '',
+    m: m[2] ? String(m[2]).padStart(2, '0') : '',
+    d: m[3] ? String(m[3]).padStart(2, '0') : '',
+  };
+}
+function joinDate(y, mo, d) {
+  if (!y) return '';
+  let out = String(y);
+  if (mo) out += '-' + String(mo).padStart(2, '0');
+  if (mo && d) out += '-' + String(d).padStart(2, '0');
+  return out;
+}
+function effectiveDate(doc) {
+  const e = edits[doc.id];
+  const raw = (e && e.date != null) ? e.date : (doc.date || '');
+  return parseDate(raw);
+}
+function effectiveDateStr(doc) {
+  const dd = effectiveDate(doc);
+  return joinDate(dd.y, dd.m, dd.d);
+}
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderList() {
+  const wrap = document.getElementById('doc-list');
+  wrap.innerHTML = '';
+  const q = (document.getElementById('search').value || '').toLowerCase();
+  // Update view toggle counts
+  const primaryN = DATA.docs.filter(d => !d.is_synthesis).length;
+  const sidecarN = DATA.docs.filter(d => d.is_synthesis).length;
+  document.getElementById('vt-primary-n').textContent = primaryN;
+  document.getElementById('vt-sidecars-n').textContent = sidecarN;
+  document.querySelectorAll('.view-toggle button').forEach(b => {
+    b.classList.toggle('on', b.dataset.view === currentView);
+  });
+  const docs = DATA.docs.filter(d => {
+    if (currentView === 'primary' && d.is_synthesis) return false;
+    if (currentView === 'sidecars' && !d.is_synthesis) return false;
+    if (currentFilter === 'untagged' && !isUntagged(d)) return false;
+    if (currentFilter === 'dirty' && !isDirty(d.id)) return false;
+    if (currentFilter === 'paired' && !(d.translation || d.notes || d.transcription)) return false;
+    if (currentFilter === 'needs-cleaning' && d.cleaned_text_status === 'has-text') return false;
+    if (selectedTypes.size > 0) {
+      const t = (d.type || '').trim() || '(no type)';
+      if (!selectedTypes.has(t)) return false;
+    }
+    if (selectedOcr.size > 0) {
+      if (!selectedOcr.has(ocrBucket(ocrEffective(d)))) return false;
+    }
+    if (selectedBranches.size > 0) {
+      const branches = docBranches(d);
+      if (!branches.some(b => selectedBranches.has(b))) return false;
+    }
+    if (selectedLanguages.size > 0) {
+      const langs = docLanguages(d);
+      if (!langs.some(l => selectedLanguages.has(l))) return false;
+    }
+    if (!q) return true;
+    if (d.title.toLowerCase().includes(q)) return true;
+    if (d.id.toLowerCase().includes(q)) return true;
+    for (const f of TAG_FIELDS) {
+      if ((d[f] || []).some(t => t.toLowerCase().includes(q))) return true;
+    }
+    return false;
+  });
+  for (const d of docs) {
+    const row = document.createElement('div');
+    row.className = 'doc-row' + (selectedId === d.id ? ' active' : '');
+    const pairCount = (d.translation ? 1 : 0) + (d.notes ? 1 : 0) + (d.transcription ? 1 : 0);
+    const ocr = ocrEffective(d);
+    const ocrClass = ocr ? ('ocr-' + ocr) : 'ocr-unset';
+    const ocrLabel = ocr ? ('OCR ' + ocr) : 'OCR ?';
+    const cts = d.cleaned_text_status || 'missing';
+    const ctsLabels = {
+      'has-text': 'text ✓',
+      'placeholder': 'text placeholder',
+      'missing': 'no text section',
+    };
+    row.innerHTML = `
+      <div class="t">${escapeHtml(d.title)}</div>
+      <div class="sub">${escapeHtml(d.type || 'untyped')}${d.date ? ' · ' + escapeHtml(d.date) : ''}</div>
+      <div class="badges">
+        <span class="badge ${ocrClass}">${ocrLabel}</span>
+        <span class="badge cleaned-${cts}" title="cleaned text status">${ctsLabels[cts]}</span>
+        ${isDirty(d.id) ? '<span class="badge dirty">edited</span>' : ''}
+        ${pairCount ? `<span class="badge pair">${pairCount} attachment${pairCount===1?'':'s'}</span>` : ''}
+        ${isUntagged(d) ? '<span class="badge untagged">untagged</span>' : ''}
+      </div>`;
+    row.addEventListener('click', () => selectDoc(d.id));
+    wrap.appendChild(row);
+  }
+  document.getElementById('header-meta').textContent =
+    `${DATA.docs.length} docs · ${docs.length} shown · ${DATA.people.length} people`;
+  document.getElementById('pending-count').textContent = pendingTotal();
+}
+
+function selectDoc(id) {
+  selectedId = id;
+  // Update the URL so the selection is deep-linkable / shareable.
+  // Use replaceState so we don't pollute the back stack with every click.
+  if (id) {
+    const params = new URLSearchParams(location.search);
+    params.set('doc', id);
+    history.replaceState({}, '', location.pathname + '?' + params.toString() + location.hash);
+  }
+  renderList();
+  renderMainDoc();
+  renderPanel();
+}
+
+function renderMainDoc() {
+  const area = document.getElementById('doc-area');
+  const toolbar = document.getElementById('doc-toolbar');
+  const doc = DATA.docs.find(d => d.id === selectedId);
+  if (!doc) {
+    toolbar.style.display = 'none';
+    area.innerHTML = '<div class="doc-empty">Select a document on the left to begin tagging.</div>';
+    return;
+  }
+  toolbar.style.display = 'flex';
+  document.getElementById('doc-name').textContent = doc.main.name || doc.id;
+  document.getElementById('doc-type').textContent = doc.type || '';
+  // Open-externally link in the toolbar when the doc has a file src
+  const ext = document.getElementById('doc-open-ext');
+  if (doc.main.src) {
+    ext.style.display = '';
+    ext.href = doc.main.src;
+    ext.textContent = 'Open in new tab ↗';
+  } else {
+    ext.style.display = 'none';
+  }
+  area.innerHTML = renderDocBlob(doc.main);
+}
+
+// --- Minimal markdown renderer ---------------------------------------------
+// Handles: headings, bold/italic, lists (nested), blockquotes, code (inline +
+// fenced), horizontal rules, links, paragraphs, wikilinks [[Foo]] and embeds
+// ![[Foo]]. Tables are parsed but kept simple (pipe rows with header row).
+function renderMarkdown(md) {
+  if (!md) return '';
+  let src = String(md).replace(/\r\n/g, '\n');
+
+  // Extract fenced code blocks first so their contents aren't processed.
+  const codeBlocks = [];
+  src = src.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (_, lang, body) => {
+    const idx = codeBlocks.length;
+    codeBlocks.push(`<pre><code>${escapeHtml(body.replace(/\n$/, ''))}</code></pre>`);
+    return ` CODE${idx} `;
+  });
+
+  const lines = src.split('\n');
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    // Code-block placeholder
+    if (/^ CODE\d+ $/.test(line.trim())) {
+      out.push(line.trim());
+      i++; continue;
+    }
+    // Horizontal rule
+    if (/^(\s*[-*_]\s*){3,}$/.test(line.replace(/\s+/g, ''))) {
+      out.push('<hr/>'); i++; continue;
+    }
+    // ATX heading
+    const h = line.match(/^(#{1,6})\s+(.*)$/);
+    if (h) {
+      const lvl = h[1].length;
+      out.push(`<h${lvl}>${renderInline(h[2])}</h${lvl}>`);
+      i++; continue;
+    }
+    // Blockquote
+    if (/^>\s?/.test(line)) {
+      const block = [];
+      while (i < lines.length && /^>\s?/.test(lines[i])) {
+        block.push(lines[i].replace(/^>\s?/, ''));
+        i++;
+      }
+      out.push(`<blockquote>${renderMarkdown(block.join('\n'))}</blockquote>`);
+      continue;
+    }
+    // Lists (unordered or ordered) — may be nested by indentation
+    if (/^(\s*)([-*+]|\d+[.)])\s+/.test(line)) {
+      const [block, consumed] = collectListBlock(lines, i);
+      out.push(renderListBlock(block));
+      i += consumed; continue;
+    }
+    // Table (very minimal)
+    if (i + 1 < lines.length && /^\s*\|.*\|\s*$/.test(line)
+        && /^\s*\|?\s*:?-{2,}/.test(lines[i+1])) {
+      const headerCells = parseTableRow(line);
+      const rows = [];
+      i += 2; // skip header + separator
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) {
+        rows.push(parseTableRow(lines[i]));
+        i++;
+      }
+      const thead = `<thead><tr>${headerCells.map(c => `<th>${renderInline(c)}</th>`).join('')}</tr></thead>`;
+      const tbody = `<tbody>${rows.map(r => `<tr>${r.map(c => `<td>${renderInline(c)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+      out.push(`<table>${thead}${tbody}</table>`);
+      continue;
+    }
+    // Blank line — paragraph break
+    if (line.trim() === '') { i++; continue; }
+    // Paragraph (gather contiguous non-special lines)
+    const para = [line];
+    i++;
+    while (i < lines.length && lines[i].trim() !== ''
+           && !/^(#{1,6})\s+/.test(lines[i])
+           && !/^>\s?/.test(lines[i])
+           && !/^(\s*)([-*+]|\d+[.)])\s+/.test(lines[i])
+           && !/^ CODE\d+ $/.test(lines[i].trim())) {
+      para.push(lines[i]); i++;
+    }
+    out.push(`<p>${renderInline(para.join(' '))}</p>`);
+  }
+
+  let html = out.join('\n');
+  // Reinsert code blocks
+  html = html.replace(/ CODE(\d+) /g, (_, n) => codeBlocks[+n] || '');
+  return html;
+}
+
+function parseTableRow(line) {
+  return line.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map(s => s.trim());
+}
+
+function collectListBlock(lines, start) {
+  // Returns [blockLines, consumed]. A list block ends on a blank line that
+  // isn't immediately followed by another indented list-continuation line.
+  const out = [];
+  let i = start;
+  while (i < lines.length) {
+    const l = lines[i];
+    if (l.trim() === '') {
+      // Look ahead — does the next non-blank line belong to the list?
+      let j = i + 1;
+      if (j < lines.length && /^(\s+)([-*+]|\d+[.)])\s+/.test(lines[j])) {
+        out.push(l); i++; continue;
+      }
+      break;
+    }
+    if (/^(\s*)([-*+]|\d+[.)])\s+/.test(l) || /^\s{2,}\S/.test(l)) {
+      out.push(l); i++; continue;
+    }
+    break;
+  }
+  return [out, i - start];
+}
+
+function renderListBlock(lines) {
+  // Parse a flat list block into a (possibly nested) ul/ol tree.
+  // Tracks indent levels; each indent step opens a sub-list.
+  const items = [];
+  for (const raw of lines) {
+    const m = raw.match(/^(\s*)([-*+]|\d+[.)])\s+(.*)$/);
+    if (m) {
+      items.push({
+        indent: m[1].length, ordered: /\d/.test(m[2]),
+        text: m[3], children: [],
+      });
+    } else {
+      // continuation of previous item's text
+      if (items.length) items[items.length - 1].text += ' ' + raw.trim();
+    }
+  }
+  function buildTree(start, baseIndent) {
+    const out = [];
+    let i = start;
+    while (i < items.length && items[i].indent >= baseIndent) {
+      if (items[i].indent > baseIndent) { i++; continue; }
+      const node = items[i];
+      const [children, j] = (i + 1 < items.length && items[i+1].indent > baseIndent)
+        ? buildTree(i + 1, items[i+1].indent)
+        : [[], i + 1];
+      node.children = children;
+      out.push(node);
+      i = j;
+    }
+    return [out, i];
+  }
+  const [tree, _] = buildTree(0, items[0]?.indent ?? 0);
+  function render(nodes) {
+    if (!nodes.length) return '';
+    const tag = nodes[0].ordered ? 'ol' : 'ul';
+    return `<${tag}>` + nodes.map(n =>
+      `<li>${renderInline(n.text)}${render(n.children)}</li>`
+    ).join('') + `</${tag}>`;
+  }
+  return render(tree);
+}
+
+function renderInline(s) {
+  if (!s) return '';
+  // Escape first, then re-introduce inline markdown structures.
+  let h = escapeHtml(s);
+  // Embed wikilinks: ![[file]] or ![[file|alias]]
+  h = h.replace(/!\[\[([^\]|]+?)(?:\|([^\]]+))?\]\]/g,
+    (_, name, alias) => `<span class="wikilink embed">${escapeHtml(alias || name)}</span>`);
+  // Plain wikilinks: [[Name]] or [[Name|alias]]
+  h = h.replace(/\[\[([^\]|]+?)(?:\|([^\]]+))?\]\]/g,
+    (_, name, alias) => `<span class="wikilink">${escapeHtml(alias || name)}</span>`);
+  // Images: ![alt](url)
+  h = h.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,
+    (_, alt, url) => `<img alt="${alt}" src="${url}" style="max-width:100%"/>`);
+  // Links: [text](url)
+  h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
+    (_, text, url) => `<a href="${url}" target="_blank" rel="noopener">${text}</a>`);
+  // Inline code: `foo`
+  h = h.replace(/`([^`]+)`/g, (_, c) => `<code>${c}</code>`);
+  // Bold: **text** or __text__
+  h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+       .replace(/__([^_]+)__/g, '<strong>$1</strong>');
+  // Italic: *text* or _text_  (avoid clashing with already-emitted strong)
+  h = h.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>')
+       .replace(/(^|[^_])_([^_\n]+)_(?!_)/g, '$1<em>$2</em>');
+  return h;
+}
+
+function renderDocBlob(blob) {
+  if (!blob || blob.kind === 'none') {
+    return '<div class="doc-empty">No document file attached.</div>';
+  }
+  if (blob.kind === 'pdf') {
+    return `<embed src="${blob.src}" type="application/pdf" />`;
+  }
+  if (blob.kind === 'image') {
+    return `<img src="${blob.src}" alt="${escapeHtml(blob.name || '')}" />`;
+  }
+  if (blob.kind === 'markdown') {
+    return `<div class="md-body md">${renderMarkdown(blob.text || '')}</div>`;
+  }
+  return '<div class="doc-empty">Unsupported document type.</div>';
+}
+
+function renderPanel() {
+  const tabBar = document.getElementById('tab-bar');
+  const body = document.getElementById('tab-body');
+  const doc = DATA.docs.find(d => d.id === selectedId);
+  if (!doc) {
+    tabBar.innerHTML = '';
+    body.innerHTML = '<div class="empty">No document selected.</div>';
+    return;
+  }
+
+  const tabs = [];
+  if (doc.translation) tabs.push({ id: 'translation', label: 'Translation' });
+  if (doc.notes) tabs.push({ id: 'notes', label: 'Notes' });
+  if (doc.transcription) tabs.push({ id: 'transcription', label: 'Transcription' });
+  if ((doc.referenced_by || []).length) {
+    tabs.push({ id: 'sidecars', label: `Sidecars (${doc.referenced_by.length})` });
+  }
+  const relCount = (doc.related_cluster || []).length + (doc.related_by_people || []).length;
+  if (relCount) {
+    tabs.push({ id: 'related', label: `Related (${relCount})` });
+  }
+  tabs.push({ id: 'sidecar', label: 'Sidecar' });
+  tabs.push({ id: 'metadata', label: 'Metadata' });
+
+  // If currently selected tab no longer exists for this doc, fall back to metadata.
+  if (!tabs.find(t => t.id === currentTab)) currentTab = 'metadata';
+
+  tabBar.innerHTML = tabs.map(t =>
+    `<button data-tab="${t.id}" class="${t.id === currentTab ? 'on' : ''}">${t.label}</button>`
+  ).join('');
+  tabBar.querySelectorAll('button').forEach(b => {
+    b.addEventListener('click', () => { currentTab = b.dataset.tab; renderPanel(); });
+  });
+
+  // The translation tab can use a side-by-side layout that needs the
+  // tab-body to be a fixed-height flex container. Toggle the class up front
+  // so all branches start from a clean state.
+  body.classList.remove('is-translation-sxs');
+
+  if (currentTab === 'metadata') {
+    body.innerHTML = renderMetadataTab(doc);
+    wireMetadataTab(doc);
+  } else if (currentTab === 'sidecars') {
+    body.innerHTML = renderSidecarsTab(doc);
+    wireSidecarsTab(doc);
+  } else if (currentTab === 'sidecar') {
+    body.innerHTML = renderSidecarSourceTab(doc);
+  } else if (currentTab === 'related') {
+    body.innerHTML = renderRelatedTab(doc);
+    wireRelatedTab();
+  } else if (currentTab === 'translation') {
+    if (translationView === 'side-by-side') body.classList.add('is-translation-sxs');
+    body.innerHTML = renderTranslationTab(doc);
+    wireTranslationTab(doc);
+  } else {
+    body.innerHTML = renderPairTab(doc[currentTab]);
+  }
+}
+
+function renderTranslationTab(doc) {
+  const blob = doc.translation;
+  if (!blob) return '<div class="empty">No translation companion.</div>';
+  const name = escapeHtml(blob.name || '');
+  const modes = `
+    <div class="view-modes">
+      <button data-mode="side-by-side" class="${translationView === 'side-by-side' ? 'on' : ''}">Side by side</button>
+      <button data-mode="stacked" class="${translationView === 'stacked' ? 'on' : ''}">Stacked</button>
+    </div>`;
+  const toolbar = `
+    <div class="translation-toolbar">
+      ${modes}
+      <div class="pair-meta"><code>${name}</code></div>
+    </div>`;
+
+  if (translationView === 'stacked') {
+    // Stacked: existing single-pane behavior, with the toolbar on top so the
+    // user can flip back to side-by-side.
+    const inner = blob.kind === 'pdf'
+      ? `<embed src="${blob.src}" type="application/pdf" />`
+      : blob.kind === 'image'
+      ? `<img src="${blob.src}" alt="${name}" />`
+      : `<div class="md">${renderMarkdown(blob.text || '')}</div>`;
+    return `${toolbar}<div class="pair-doc" style="padding:14px 16px">${inner}</div>`;
+  }
+
+  // Side-by-side: original (cleaned text from primary) on the left,
+  // translation on the right.
+  const left = (doc.cleaned_text || '').trim()
+    ? `<div class="col-body md">${renderMarkdown(doc.cleaned_text)}</div>`
+    : `<div class="col-body" style="color:var(--muted);font-style:italic">No "## Cleaned Text" section in the primary sidecar — switch to Stacked to view the translation alone, or add a Cleaned Text section to the primary.</div>`;
+  const rightBody = blob.kind === 'pdf'
+    ? `<embed src="${blob.src}" type="application/pdf" style="width:100%;height:80vh;border:0;background:#fff" />`
+    : blob.kind === 'image'
+    ? `<img src="${blob.src}" alt="${name}" style="max-width:100%;display:block" />`
+    : `<div class="md">${renderMarkdown(blob.text || '')}</div>`;
+  return `
+    <div class="translation-view">
+      ${toolbar}
+      <div class="translation-cols">
+        <div class="col" data-col="left">
+          <div class="col-head">Original (cleaned text)</div>
+          ${left}
+        </div>
+        <div class="col" data-col="right">
+          <div class="col-head">English translation</div>
+          <div class="col-body">${rightBody}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function wireTranslationTab(doc) {
+  document.querySelectorAll('.translation-toolbar .view-modes button').forEach(b => {
+    b.addEventListener('click', () => {
+      translationView = b.dataset.mode;
+      localStorage.setItem('document-tagger-translation-view-v1', translationView);
+      renderPanel();
+    });
+  });
+  if (translationView !== 'side-by-side') return;
+  const left = document.querySelector('.translation-cols .col[data-col="left"]');
+  const right = document.querySelector('.translation-cols .col[data-col="right"]');
+  if (!left || !right) return;
+  let syncing = false;
+  function syncFrom(src, dst) {
+    if (syncing) return;
+    const srcRange = src.scrollHeight - src.clientHeight;
+    const dstRange = dst.scrollHeight - dst.clientHeight;
+    if (srcRange <= 0 || dstRange <= 0) return;
+    syncing = true;
+    dst.scrollTop = dstRange * (src.scrollTop / srcRange);
+    // Release on the next animation frame so the scroll event the assignment
+    // triggers on `dst` doesn't bounce back to `src`.
+    requestAnimationFrame(() => { syncing = false; });
+  }
+  left.addEventListener('scroll', () => syncFrom(left, right));
+  right.addEventListener('scroll', () => syncFrom(right, left));
+}
+
+function renderSidecarSourceTab(doc) {
+  const raw = doc.sidecar_raw || '(sidecar file is empty)';
+  // Split frontmatter from body so we can show YAML as a code block and the
+  // body as rendered markdown.
+  let fm = '', body = raw;
+  if (raw.startsWith('---')) {
+    const end = raw.indexOf('\n---', 3);
+    if (end > -1) {
+      fm = raw.slice(3, end).replace(/^\n/, '');
+      body = raw.slice(end + 4).replace(/^\n/, '');
+    }
+  }
+  const obsidianUri = 'obsidian://open?vault=genealogy&file=' + encodeURIComponent(doc.sidecar);
+  return `
+    <div class="pair-meta">
+      <code>${escapeHtml(doc.sidecar)}</code>
+      &nbsp;·&nbsp;
+      <a href="${doc.sidecar ? '../' + doc.sidecar : '#'}" target="_blank" rel="noopener">view raw</a>
+      &nbsp;·&nbsp;
+      <a href="${obsidianUri}" target="_blank" rel="noopener">open in Obsidian</a>
+    </div>
+    ${fm ? `<div class="sidecar-section-label">YAML frontmatter</div>
+            <pre class="sidecar-yaml"><code>${escapeHtml(fm)}</code></pre>` : ''}
+    <div class="sidecar-section-label">Body</div>
+    <div class="md">${renderMarkdown(body)}</div>`;
+}
+
+function renderSidecarsTab(doc) {
+  const refs = doc.referenced_by || [];
+  if (!refs.length) return '<div class="empty">No synthesis docs reference this one.</div>';
+  const parts = refs.map(id => {
+    const s = DATA.docs.find(d => d.id === id);
+    if (!s) return '';
+    const meta = `${escapeHtml(s.type || 'synthesis')}${s.date ? ' · ' + escapeHtml(s.date) : ''}`;
+    return `
+      <div class="sidecar-card" data-sidecar="${escapeHtml(id)}">
+        <div class="sidecar-head">
+          <div class="sidecar-title">${escapeHtml(s.title)}</div>
+          <div class="sidecar-meta">${meta} · <a href="#" data-open-sidecar="${escapeHtml(id)}">open as main</a></div>
+        </div>
+        <div class="sidecar-body md">${renderMarkdown(s.body_text || '(no body)')}</div>
+      </div>`;
+  });
+  return parts.join('');
+}
+
+function relatedCardHtml(id, hint) {
+  const d = DATA.docs.find(x => x.id === id);
+  if (!d) return '';
+  const sub = `${escapeHtml(d.type || 'untyped')}${d.date ? ' · ' + escapeHtml(d.date) : ''}`;
+  return `
+    <div class="related-card">
+      <a class="related-title" href="?doc=${encodeURIComponent(id)}" data-related="${escapeHtml(id)}">${escapeHtml(d.title)}</a>
+      <div class="related-meta">${sub}${hint ? ' · ' + escapeHtml(hint) : ''}</div>
+    </div>`;
+}
+
+function renderRelatedTab(doc) {
+  const cluster = doc.related_cluster || [];
+  const byPeople = doc.related_by_people || [];
+  if (!cluster.length && !byPeople.length) {
+    return '<div class="empty">No related documents.</div>';
+  }
+  const parts = [];
+  if (cluster.length) {
+    parts.push(`<div class="sidecar-section-label">Same source cluster (${cluster.length})</div>`);
+    for (const id of cluster) parts.push(relatedCardHtml(id, null));
+  }
+  if (byPeople.length) {
+    parts.push(`<div class="sidecar-section-label">Shares people (${byPeople.length})</div>`);
+    for (const entry of byPeople) {
+      parts.push(relatedCardHtml(entry.id, `${entry.overlap} shared person${entry.overlap === 1 ? '' : 's'}`));
+    }
+  }
+  return parts.join('');
+}
+
+function wireRelatedTab() {
+  document.querySelectorAll('a[data-related]').forEach(a => {
+    a.addEventListener('click', ev => {
+      ev.preventDefault();
+      const id = a.dataset.related;
+      const target = DATA.docs.find(d => d.id === id);
+      if (!target) return;
+      // Flip the left-panel view if needed so the target is visible.
+      const needView = target.is_synthesis ? 'sidecars' : 'primary';
+      if (currentView !== needView) {
+        currentView = needView;
+        localStorage.setItem('document-tagger-view-v1', currentView);
+      }
+      selectDoc(id);
+    });
+  });
+}
+
+function wireSidecarsTab(doc) {
+  document.querySelectorAll('a[data-open-sidecar]').forEach(a => {
+    a.addEventListener('click', ev => {
+      ev.preventDefault();
+      // Switch to sidecars view (if not already) and select this sidecar as the main doc.
+      currentView = 'sidecars';
+      localStorage.setItem('document-tagger-view-v1', currentView);
+      selectDoc(a.dataset.openSidecar);
+    });
+  });
+}
+
+function renderPairTab(blob) {
+  if (!blob) return '<div class="empty">Not present.</div>';
+  let inner = '';
+  if (blob.kind === 'pdf') {
+    inner = `<embed src="${blob.src}" type="application/pdf" />`;
+  } else if (blob.kind === 'image') {
+    inner = `<img src="${blob.src}" alt="${escapeHtml(blob.name || '')}" />`;
+  } else {
+    inner = `<div class="md">${renderMarkdown(blob.text || '')}</div>`;
+  }
+  return `
+    <div class="pair-meta"><code>${escapeHtml(blob.name || '')}</code></div>
+    <div class="pair-doc">${inner}</div>`;
+}
+
+function renderChipsBlock(doc, field, seed) {
+  const e = ensureEdit(doc.id);
+  const ee = e[field];
+  const base = doc[field] || [];
+  const parts = [];
+  for (const t of base) {
+    if (ee.remove.has(t)) {
+      parts.push(`<span class="chip removed" data-tag="${escapeHtml(t)}" data-field="${field}"><span>${escapeHtml(t)}</span><button data-action="undo-remove">↺</button></span>`);
+    } else {
+      parts.push(`<span class="chip" data-tag="${escapeHtml(t)}" data-field="${field}"><span>${escapeHtml(t)}</span><button data-action="remove">×</button></span>`);
+    }
+  }
+  for (const t of ee.add) {
+    parts.push(`<span class="chip added" data-tag="${escapeHtml(t)}" data-field="${field}"><span>${escapeHtml(t)}</span><button data-action="undo-add">×</button></span>`);
+  }
+  let seedBtns = '';
+  if (seed && seed.length) {
+    const present = new Set(effectiveTags(doc, field));
+    seedBtns = `<div class="seed-row">` + seed.map(s =>
+      `<button data-seed="${escapeHtml(s)}" data-field="${field}" class="${present.has(s) ? 'has' : ''}">+ ${escapeHtml(s)}</button>`
+    ).join('') + `</div>`;
+  }
+  return { chips: parts.join(''), seedBtns };
+}
+
+function renderMetadataTab(doc) {
+  const peopleBlock = renderChipsBlock(doc, 'related_people', null);
+  const placesBlock = renderChipsBlock(doc, 'places', null);
+  const langsBlock = renderChipsBlock(doc, 'languages', DATA.language_seed);
+  const topicsBlock = renderChipsBlock(doc, 'topics', DATA.topic_seed);
+  const dd = effectiveDate(doc);
+  return `
+    <div class="meta-tab">
+      <h3 class="header-title" style="font-size:15px;color:var(--text);text-transform:none;letter-spacing:0">${escapeHtml(doc.title)}</h3>
+      <div class="header-meta">
+        <code>${escapeHtml(doc.sidecar)}</code>
+        ${doc.type ? `<br/>type: <code>${escapeHtml(doc.type)}</code>` : ''}
+      </div>
+
+      <h3>People</h3>
+      <div class="chips" data-block="related_people">${peopleBlock.chips}</div>
+      <div class="picker">
+        <div class="autocomplete">
+          <input id="ac-people" type="text" placeholder="+ Add person — start typing…" autocomplete="off" data-field="related_people"/>
+          <div class="results" id="ac-people-results"></div>
+        </div>
+      </div>
+
+      <h3>Places</h3>
+      <div class="chips" data-block="places">${placesBlock.chips}</div>
+      <div class="picker">
+        <div class="autocomplete">
+          <input id="ac-places" type="text" placeholder="+ Add place…" autocomplete="off" data-field="places"/>
+        </div>
+      </div>
+
+      <h3>Languages</h3>
+      <div class="chips" data-block="languages">${langsBlock.chips}</div>
+      <div class="picker">
+        ${langsBlock.seedBtns}
+        <div class="autocomplete">
+          <input id="ac-languages" type="text" placeholder="+ Add language…" autocomplete="off" data-field="languages"/>
+        </div>
+      </div>
+
+      <h3>Topics</h3>
+      <div class="chips" data-block="topics">${topicsBlock.chips}</div>
+      <div class="picker">
+        ${topicsBlock.seedBtns}
+        <div class="autocomplete">
+          <input id="ac-topics" type="text" placeholder="+ Add topic…" autocomplete="off" data-field="topics"/>
+        </div>
+      </div>
+
+      <h3>OCR confidence</h3>
+      <div class="ocr-picker" id="ocr-picker">
+        ${['high','medium','low'].map(v => {
+          const cur = ocrEffective(doc);
+          return `<button data-ocr="${v}" class="${cur === v ? 'on' : ''}">${v}</button>`;
+        }).join('')}
+        <button data-ocr="" class="${!ocrEffective(doc) ? 'on' : ''}">(unset)</button>
+      </div>
+
+      <h3>Date</h3>
+      <div class="date-row">
+        <input id="date-y" class="date-input" type="number" placeholder="YYYY" min="1700" max="2100" value="${escapeHtml(dd.y)}"/>
+        <select id="date-m" class="date-input">
+          <option value="">— month —</option>
+          <option value="01">January</option><option value="02">February</option>
+          <option value="03">March</option><option value="04">April</option>
+          <option value="05">May</option><option value="06">June</option>
+          <option value="07">July</option><option value="08">August</option>
+          <option value="09">September</option><option value="10">October</option>
+          <option value="11">November</option><option value="12">December</option>
+        </select>
+        <input id="date-d" class="date-input" type="number" placeholder="DD" min="1" max="31" value="${escapeHtml(dd.d)}"/>
+      </div>
+      <div class="header-meta" style="margin-top:4px">Currently saved: <code id="date-preview">${escapeHtml(effectiveDateStr(doc) || '(none)')}</code></div>
+    </div>`;
+}
+
+function wireMetadataTab(doc) {
+  const body = document.getElementById('tab-body');
+
+  // Chip clicks (remove / undo)
+  body.querySelectorAll('[data-block]').forEach(block => {
+    block.addEventListener('click', ev => {
+      const btn = ev.target.closest('button'); if (!btn) return;
+      const chip = btn.closest('.chip');
+      const tag = chip.dataset.tag; const field = chip.dataset.field;
+      const ee = ensureEdit(doc.id)[field];
+      const action = btn.dataset.action;
+      if (action === 'remove') ee.remove.add(tag);
+      else if (action === 'undo-remove') ee.remove.delete(tag);
+      else if (action === 'undo-add') ee.add.delete(tag);
+      saveEdits(); renderPanel(); renderList();
+    });
+  });
+
+  // Seed-button quick picks
+  body.querySelectorAll('button[data-seed]').forEach(b => {
+    b.addEventListener('click', () => {
+      const field = b.dataset.field; const val = b.dataset.seed;
+      const ee = ensureEdit(doc.id)[field];
+      if ((doc[field] || []).includes(val)) ee.remove.delete(val);
+      else ee.add.add(val);
+      saveEdits(); renderPanel(); renderList();
+    });
+  });
+
+  // People autocomplete
+  wirePersonAutocomplete(doc, 'related_people', 'ac-people', 'ac-people-results', DATA.people);
+
+  // Free-text inputs (places / languages / topics) — Enter to add
+  for (const fid of [['ac-places', 'places'], ['ac-languages', 'languages'], ['ac-topics', 'topics']]) {
+    const [id, field] = fid;
+    const el = body.querySelector('#' + id); if (!el) continue;
+    el.addEventListener('keydown', ev => {
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      const val = el.value.trim(); if (!val) return;
+      const ee = ensureEdit(doc.id)[field];
+      if ((doc[field] || []).includes(val)) ee.remove.delete(val);
+      else ee.add.add(val);
+      el.value = '';
+      saveEdits(); renderPanel(); renderList();
+    });
+  }
+
+  // OCR confidence picker
+  body.querySelectorAll('#ocr-picker button').forEach(b => {
+    b.addEventListener('click', () => {
+      const val = b.dataset.ocr;
+      const ee = ensureEdit(doc.id);
+      if (val === (doc.ocr_confidence || '')) {
+        // back to original — clear edit
+        delete ee.ocr_confidence;
+      } else {
+        ee.ocr_confidence = val;
+      }
+      saveEdits(); renderPanel(); renderList();
+    });
+  });
+
+  // Date
+  const dY = body.querySelector('#date-y');
+  const dM = body.querySelector('#date-m');
+  const dD = body.querySelector('#date-d');
+  const dPreview = body.querySelector('#date-preview');
+  const cur = effectiveDate(doc);
+  if (cur.m) dM.value = cur.m;
+  function pushDate() {
+    const ee = ensureEdit(doc.id);
+    const newStr = joinDate(dY.value.trim(), dM.value, dD.value.trim());
+    if (newStr === (doc.date || '')) delete ee.date;
+    else ee.date = newStr;
+    dPreview.textContent = newStr || '(none)';
+    saveEdits(); renderList();
+  }
+  [dY, dM, dD].forEach(el => el.addEventListener('input', pushDate));
+  dM.addEventListener('change', pushDate);
+}
+
+function wirePersonAutocomplete(doc, field, inputId, resultsId, options) {
+  const body = document.getElementById('tab-body');
+  const inp = body.querySelector('#' + inputId);
+  let resultsEl = body.querySelector('#' + resultsId);
+  if (!resultsEl) {
+    // results container — create it adjacent
+    resultsEl = document.createElement('div');
+    resultsEl.className = 'results';
+    resultsEl.id = resultsId;
+    inp.parentElement.appendChild(resultsEl);
+  }
+  let focusIdx = -1;
+  function update() {
+    const q = inp.value.trim().toLowerCase();
+    if (!q) { resultsEl.classList.remove('show'); resultsEl.innerHTML = ''; return; }
+    const present = new Set(effectiveTags(doc, field));
+    const matches = options.filter(o => o.toLowerCase().includes(q) && !present.has(o)).slice(0, 20);
+    if (!matches.length) { resultsEl.classList.remove('show'); return; }
+    resultsEl.innerHTML = matches.map((m, i) =>
+      `<div data-name="${escapeHtml(m)}" class="${i===0?'focus':''}">${escapeHtml(m)}</div>`).join('');
+    resultsEl.classList.add('show');
+    focusIdx = 0;
+  }
+  function pick(val) {
+    const ee = ensureEdit(doc.id)[field];
+    if ((doc[field] || []).includes(val)) ee.remove.delete(val);
+    else ee.add.add(val);
+    inp.value = ''; resultsEl.classList.remove('show');
+    saveEdits(); renderPanel(); renderList();
+  }
+  inp.addEventListener('input', update);
+  inp.addEventListener('keydown', ev => {
+    const items = [...resultsEl.querySelectorAll('div')];
+    if (ev.key === 'ArrowDown') {
+      ev.preventDefault();
+      if (!items.length) return;
+      focusIdx = (focusIdx + 1) % items.length;
+      items.forEach((el, i) => el.classList.toggle('focus', i === focusIdx));
+    } else if (ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      if (!items.length) return;
+      focusIdx = (focusIdx - 1 + items.length) % items.length;
+      items.forEach((el, i) => el.classList.toggle('focus', i === focusIdx));
+    } else if (ev.key === 'Enter') {
+      ev.preventDefault();
+      if (focusIdx >= 0 && items[focusIdx]) pick(items[focusIdx].dataset.name);
+      else if (inp.value.trim()) pick(inp.value.trim());
+    } else if (ev.key === 'Escape') {
+      resultsEl.classList.remove('show');
+    }
+  });
+  resultsEl.addEventListener('click', ev => {
+    const d = ev.target.closest('div[data-name]');
+    if (d) pick(d.dataset.name);
+  });
+}
+
+document.getElementById('search').addEventListener('input', renderList);
+document.querySelectorAll('.view-toggle button').forEach(b => {
+  b.addEventListener('click', () => {
+    currentView = b.dataset.view;
+    localStorage.setItem('document-tagger-view-v1', currentView);
+    renderList();
+  });
+});
+document.querySelectorAll('.filter').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.filter').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    currentFilter = b.dataset.filter;
+    renderList();
+  });
+});
+
+function renderTypeChips() {
+  const wrap = document.getElementById('type-chips');
+  const caret = document.getElementById('type-caret');
+  const countEl = document.getElementById('type-count');
+  caret.textContent = typesExpanded ? '▾' : '▸';
+  wrap.classList.toggle('show', typesExpanded);
+  if (selectedTypes.size === 0) {
+    countEl.textContent = 'none selected';
+    countEl.classList.remove('active');
+  } else {
+    countEl.textContent = selectedTypes.size + ' selected';
+    countEl.classList.add('active');
+  }
+  if (!typesExpanded) return;
+  const parts = [];
+  if (selectedTypes.size > 0) {
+    parts.push(`<button class="clear" data-action="clear">Clear (${selectedTypes.size})</button>`);
+  }
+  for (const [name, count] of DATA.type_distribution) {
+    const on = selectedTypes.has(name);
+    parts.push(`<button data-type="${escapeHtml(name)}" class="${on ? 'on' : ''}">${escapeHtml(name)} <span class="n">${count}</span></button>`);
+  }
+  wrap.innerHTML = parts.join('');
+  wrap.querySelectorAll('button[data-type]').forEach(b => {
+    b.addEventListener('click', () => {
+      const t = b.dataset.type;
+      if (selectedTypes.has(t)) selectedTypes.delete(t);
+      else selectedTypes.add(t);
+      saveSelectedTypes();
+      renderTypeChips();
+      renderList();
+    });
+  });
+  const clear = wrap.querySelector('button[data-action="clear"]');
+  if (clear) clear.addEventListener('click', () => {
+    selectedTypes.clear();
+    saveSelectedTypes();
+    renderTypeChips();
+    renderList();
+  });
+}
+document.getElementById('type-toggle').addEventListener('click', () => {
+  typesExpanded = !typesExpanded;
+  renderTypeChips();
+});
+// Initial render of type filter state (collapsed but shows count if any persisted)
+renderTypeChips();
+
+function renderOcrChips() {
+  const wrap = document.getElementById('ocr-chips');
+  const caret = document.getElementById('ocr-caret');
+  const countEl = document.getElementById('ocr-count');
+  caret.textContent = ocrExpanded ? '▾' : '▸';
+  wrap.classList.toggle('show', ocrExpanded);
+  if (selectedOcr.size === 0) {
+    countEl.textContent = 'none selected';
+    countEl.classList.remove('active');
+  } else {
+    countEl.textContent = selectedOcr.size + ' selected';
+    countEl.classList.add('active');
+  }
+  if (!ocrExpanded) return;
+  const parts = [];
+  if (selectedOcr.size > 0) {
+    parts.push(`<button class="clear" data-action="clear">Clear (${selectedOcr.size})</button>`);
+  }
+  for (const [name, count] of DATA.ocr_distribution) {
+    const on = selectedOcr.has(name);
+    parts.push(`<button data-ocr-bucket="${escapeHtml(name)}" class="${on ? 'on' : ''}">${escapeHtml(name)} <span class="n">${count}</span></button>`);
+  }
+  wrap.innerHTML = parts.join('');
+  wrap.querySelectorAll('button[data-ocr-bucket]').forEach(b => {
+    b.addEventListener('click', () => {
+      const v = b.dataset.ocrBucket;
+      if (selectedOcr.has(v)) selectedOcr.delete(v);
+      else selectedOcr.add(v);
+      saveSelectedOcr();
+      renderOcrChips();
+      renderList();
+    });
+  });
+  const clear = wrap.querySelector('button[data-action="clear"]');
+  if (clear) clear.addEventListener('click', () => {
+    selectedOcr.clear();
+    saveSelectedOcr();
+    renderOcrChips();
+    renderList();
+  });
+}
+document.getElementById('ocr-toggle').addEventListener('click', () => {
+  ocrExpanded = !ocrExpanded;
+  renderOcrChips();
+});
+renderOcrChips();
+
+function renderBranchChips() {
+  const wrap = document.getElementById('branch-chips');
+  const caret = document.getElementById('branch-caret');
+  const countEl = document.getElementById('branch-count');
+  caret.textContent = branchesExpanded ? '▾' : '▸';
+  wrap.classList.toggle('show', branchesExpanded);
+  if (selectedBranches.size === 0) {
+    countEl.textContent = 'none selected';
+    countEl.classList.remove('active');
+  } else {
+    countEl.textContent = selectedBranches.size + ' selected';
+    countEl.classList.add('active');
+  }
+  if (!branchesExpanded) return;
+  const parts = [];
+  if (selectedBranches.size > 0) {
+    parts.push(`<button class="clear" data-action="clear">Clear (${selectedBranches.size})</button>`);
+  }
+  for (const [name, count] of DATA.branch_distribution) {
+    const on = selectedBranches.has(name);
+    parts.push(`<button data-branch="${escapeHtml(name)}" class="${on ? 'on' : ''}">${escapeHtml(name)} <span class="n">${count}</span></button>`);
+  }
+  wrap.innerHTML = parts.join('');
+  wrap.querySelectorAll('button[data-branch]').forEach(b => {
+    b.addEventListener('click', () => {
+      const v = b.dataset.branch;
+      if (selectedBranches.has(v)) selectedBranches.delete(v);
+      else selectedBranches.add(v);
+      saveSelectedBranches();
+      renderBranchChips();
+      renderList();
+    });
+  });
+  const clear = wrap.querySelector('button[data-action="clear"]');
+  if (clear) clear.addEventListener('click', () => {
+    selectedBranches.clear();
+    saveSelectedBranches();
+    renderBranchChips();
+    renderList();
+  });
+}
+document.getElementById('branch-toggle').addEventListener('click', () => {
+  branchesExpanded = !branchesExpanded;
+  renderBranchChips();
+});
+renderBranchChips();
+
+function renderLanguageChips() {
+  const wrap = document.getElementById('lang-chips');
+  const caret = document.getElementById('lang-caret');
+  const countEl = document.getElementById('lang-count');
+  caret.textContent = languagesExpanded ? '▾' : '▸';
+  wrap.classList.toggle('show', languagesExpanded);
+  if (selectedLanguages.size === 0) {
+    countEl.textContent = 'none selected';
+    countEl.classList.remove('active');
+  } else {
+    countEl.textContent = selectedLanguages.size + ' selected';
+    countEl.classList.add('active');
+  }
+  if (!languagesExpanded) return;
+  const parts = [];
+  if (selectedLanguages.size > 0) {
+    parts.push(`<button class="clear" data-action="clear">Clear (${selectedLanguages.size})</button>`);
+  }
+  for (const [name, count] of DATA.language_distribution) {
+    const on = selectedLanguages.has(name);
+    parts.push(`<button data-lang="${escapeHtml(name)}" class="${on ? 'on' : ''}">${escapeHtml(name)} <span class="n">${count}</span></button>`);
+  }
+  wrap.innerHTML = parts.join('');
+  wrap.querySelectorAll('button[data-lang]').forEach(b => {
+    b.addEventListener('click', () => {
+      const v = b.dataset.lang;
+      if (selectedLanguages.has(v)) selectedLanguages.delete(v);
+      else selectedLanguages.add(v);
+      saveSelectedLanguages();
+      renderLanguageChips();
+      renderList();
+    });
+  });
+  const clear = wrap.querySelector('button[data-action="clear"]');
+  if (clear) clear.addEventListener('click', () => {
+    selectedLanguages.clear();
+    saveSelectedLanguages();
+    renderLanguageChips();
+    renderList();
+  });
+}
+document.getElementById('lang-toggle').addEventListener('click', () => {
+  languagesExpanded = !languagesExpanded;
+  renderLanguageChips();
+});
+renderLanguageChips();
+
+// Deep-link: if ?doc=<id> is in the URL, auto-select that doc.
+(function initialSelection() {
+  const params = new URLSearchParams(location.search);
+  const wantId = params.get('doc');
+  if (!wantId) return;
+  const doc = DATA.docs.find(d => d.id === wantId);
+  if (!doc) {
+    console.warn('Deep-link target not found:', wantId);
+    return;
+  }
+  // If the requested doc is a synthesis sidecar but the persisted view is
+  // primary (or vice versa), switch to the matching view so it shows up.
+  if (doc.is_synthesis && currentView !== 'sidecars') {
+    currentView = 'sidecars';
+    localStorage.setItem('document-tagger-view-v1', currentView);
+  } else if (!doc.is_synthesis && currentView !== 'primary') {
+    currentView = 'primary';
+    localStorage.setItem('document-tagger-view-v1', currentView);
+  }
+  selectDoc(wantId);
+})();
+document.getElementById('clear-btn').addEventListener('click', () => {
+  if (!confirm('Clear all pending edits? This cannot be undone.')) return;
+  edits = {}; saveEdits();
+  renderList(); renderPanel();
+});
+document.getElementById('export-btn').addEventListener('click', () => {
+  const out = { schema: 'document-tagger/v1', exported_at: new Date().toISOString(), edits: [] };
+  for (const d of DATA.docs) {
+    if (!isDirty(d.id)) continue;
+    const e = edits[d.id];
+    const entry = { doc: d.id, sidecar: d.sidecar, places_field: d.places_field };
+    for (const f of TAG_FIELDS) {
+      entry[f] = { add: [...e[f].add], remove: [...e[f].remove] };
+    }
+    if (e.date != null) entry.date = e.date;
+    if (e.ocr_confidence !== undefined) entry.ocr_confidence = e.ocr_confidence;
+    out.edits.push(entry);
+  }
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `document-tagger-changes-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+
+renderList();
+</script>
+</body>
+</html>

@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Photo Tagger</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #181b22;
+    --panel2: #20242d;
+    --panel3: #262b36;
+    --border: #2a2f3a;
+    --text: #e8eaed;
+    --muted: #9aa3b2;
+    --accent: #7aa2ff;
+    --accent2: #ffd479;
+    --danger: #ff6b6b;
+    --chip-bg: #2a3145;
+    --chip-text: #cfd6ea;
+    --added: #1f3a2a;
+    --removed: #3a1f1f;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%; background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 13.5px;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px; padding: 9px 14px;
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 50;
+  }
+  header h1 { font-size: 14.5px; margin: 0; font-weight: 600; }
+  header .meta { color: var(--muted); font-size: 12px; }
+  header .spacer { flex: 1; }
+  header button {
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 10px; font-size: 12.5px; cursor: pointer;
+  }
+  header button:hover { border-color: var(--accent); }
+  header button.primary { background: var(--accent); color: #0b1020; border-color: var(--accent); font-weight: 600; }
+  header .pending-badge {
+    background: var(--accent2); color: #1a1300;
+    border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 700;
+  }
+  main {
+    display: grid;
+    grid-template-columns: 280px 1fr 380px;
+    height: calc(100vh - 47px);
+    min-height: 0;
+  }
+  /* --- Thumbnail column --- */
+  aside.grid {
+    background: var(--panel); border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 8px;
+  }
+  aside.grid .search {
+    width: 100%; padding: 7px 10px; margin-bottom: 8px;
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+  }
+  aside.grid .filter-row {
+    display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;
+  }
+  aside.grid .filter-row button {
+    background: var(--panel2); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 3px 9px; font-size: 11.5px; cursor: pointer;
+  }
+  aside.grid .filter-row button.on { background: var(--accent); color: #0b1020; border-color: var(--accent); }
+  .thumb {
+    display: flex; gap: 8px; padding: 6px; border-radius: 6px;
+    cursor: pointer; margin-bottom: 4px; align-items: flex-start;
+  }
+  .thumb:hover { background: var(--panel2); }
+  .thumb.active { background: var(--panel2); outline: 1px solid var(--accent); }
+  .thumb img {
+    width: 60px; height: 60px; object-fit: cover; border-radius: 4px;
+    background: #000; flex-shrink: 0;
+  }
+  .thumb .label { font-size: 12px; line-height: 1.3; word-break: break-word; }
+  .thumb .label .sub { color: var(--muted); font-size: 11px; margin-top: 2px; }
+  .thumb .label .badge {
+    display: inline-block; padding: 1px 6px; border-radius: 999px;
+    background: var(--chip-bg); color: var(--chip-text);
+    font-size: 10px; margin-top: 2px; margin-right: 3px;
+  }
+  .thumb .label .badge.dirty { background: var(--accent2); color: #1a1300; }
+  .thumb .label .badge.pair { background: #3a2f5a; color: #d8c5ff; }
+
+  /* --- Image (center) column --- */
+  section.image {
+    background: #0a0c11;
+    display: flex; flex-direction: column;
+    overflow: hidden; min-width: 0;
+  }
+  .image-toolbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 12px; background: var(--panel); border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .image-toolbar .group {
+    display: flex; gap: 4px; align-items: center;
+    padding: 2px 6px;
+    border-right: 1px solid var(--border);
+  }
+  .image-toolbar .group:last-of-type { border-right: 0; }
+  .image-toolbar label { color: var(--muted); font-size: 11.5px; }
+  .image-toolbar button {
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 5px;
+    padding: 4px 8px; font-size: 12px; cursor: pointer;
+  }
+  .image-toolbar button:hover { border-color: var(--accent); }
+  .image-toolbar button.on {
+    background: var(--accent); color: #0b1020; border-color: var(--accent);
+  }
+  .image-toolbar .face-tabs button {
+    border-radius: 0; border-right: 0; padding: 3px 12px;
+  }
+  .image-toolbar .face-tabs button:first-child { border-radius: 5px 0 0 5px; }
+  .image-toolbar .face-tabs button:last-child { border-radius: 0 5px 5px 0; border-right: 1px solid var(--border); }
+
+  .image-area {
+    flex: 1; overflow: auto; padding: 16px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .image-area.tag-cursor { cursor: crosshair; }
+  .image-wrap {
+    position: relative; display: inline-block;
+    transition: transform 0.2s ease;
+  }
+  .image-wrap img {
+    max-width: 100%; max-height: calc(100vh - 180px);
+    display: block; user-select: none;
+    background: #000;
+  }
+  .image-wrap .markers-overlay {
+    position: absolute; inset: 0; pointer-events: none;
+  }
+  .marker {
+    position: absolute; transform: translate(-50%, -50%);
+    background: var(--accent); color: #0b1020;
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px;
+    box-shadow: 0 0 0 2px #0a0c11, 0 0 0 3px var(--accent);
+    pointer-events: auto; cursor: pointer;
+  }
+  .marker.added { background: #6fcf97; box-shadow: 0 0 0 2px #0a0c11, 0 0 0 3px #6fcf97; }
+  .marker-label {
+    position: absolute; transform: translate(-50%, calc(-100% - 16px));
+    background: rgba(10,12,17,0.92); color: var(--text);
+    padding: 3px 8px; border-radius: 4px; font-size: 11.5px;
+    white-space: nowrap; pointer-events: none;
+    border: 1px solid var(--border);
+  }
+
+  .image-empty {
+    color: var(--muted); text-align: center; padding: 40px;
+  }
+
+  /* --- Right panel --- */
+  aside.panel {
+    background: var(--panel); border-left: 1px solid var(--border);
+    overflow-y: auto; padding: 16px 18px;
+  }
+  aside.panel h2 { margin: 0 0 4px 0; font-size: 16px; }
+  aside.panel h3 {
+    margin: 16px 0 8px 0; font-size: 11.5px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+  }
+  aside.panel .meta-row {
+    color: var(--muted); font-size: 11.5px; margin-bottom: 10px;
+    word-break: break-all;
+  }
+  aside.panel .meta-row code {
+    background: var(--panel2); padding: 1px 5px; border-radius: 3px; font-size: 11px;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip {
+    background: var(--chip-bg); color: var(--chip-text);
+    padding: 3px 7px 3px 10px; border-radius: 999px; font-size: 12px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .chip .num {
+    background: var(--accent); color: #0b1020;
+    width: 16px; height: 16px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; margin-right: -3px; margin-left: -4px;
+  }
+  .chip.added { background: var(--added); color: #b6f0c5; }
+  .chip.added .num { background: #6fcf97; color: #0a1a0e; }
+  .chip.removed {
+    background: var(--removed); color: #ffb3b3;
+    text-decoration: line-through;
+  }
+  .chip button {
+    background: transparent; border: 0; color: inherit; cursor: pointer;
+    font-size: 13px; padding: 0; line-height: 1; opacity: 0.7;
+  }
+  .chip button:hover { opacity: 1; }
+
+  .autocomplete { position: relative; margin-top: 10px; }
+  .autocomplete input {
+    width: 100%; padding: 7px 10px; background: var(--panel2);
+    border: 1px solid var(--border); border-radius: 6px; color: var(--text);
+    font: inherit;
+  }
+  .autocomplete .results {
+    position: absolute; left: 0; right: 0; top: 100%;
+    background: var(--panel3); border: 1px solid var(--border);
+    border-top: 0; border-radius: 0 0 6px 6px; max-height: 220px;
+    overflow-y: auto; z-index: 10; display: none;
+  }
+  .autocomplete .results.show { display: block; }
+  .autocomplete .results div {
+    padding: 6px 10px; cursor: pointer; font-size: 12.5px;
+  }
+  .autocomplete .results div.focus, .autocomplete .results div:hover {
+    background: var(--panel2);
+  }
+  .autocomplete .hint { color: var(--muted); font-size: 11px; margin-top: 5px; }
+
+  .date-row {
+    display: grid;
+    grid-template-columns: 70px 1fr 60px;
+    gap: 6px;
+  }
+  .date-row .date-input {
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 8px; font: inherit;
+  }
+  .date-row select.date-input { padding: 5px 6px; }
+  textarea.caption-edit {
+    width: 100%; min-height: 60px;
+    padding: 7px 10px; background: var(--panel2);
+    border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font: inherit; resize: vertical;
+  }
+  .marker-list { display: flex; flex-direction: column; gap: 4px; }
+  .marker-row {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--panel2); border-radius: 6px;
+    padding: 5px 8px; font-size: 12px;
+  }
+  .marker-row .dot {
+    background: var(--accent); color: #0b1020;
+    width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 10.5px; flex-shrink: 0;
+  }
+  .marker-row.added .dot { background: #6fcf97; color: #0a1a0e; }
+  .marker-row .person { flex: 1; word-break: break-word; }
+  .marker-row .pos { color: var(--muted); font-size: 10.5px; }
+  .marker-row .x {
+    background: transparent; border: 0; color: var(--muted);
+    cursor: pointer; opacity: 0.7; font-size: 13px;
+  }
+  .marker-row .x:hover { opacity: 1; color: var(--danger); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Photo Tagger</h1>
+  <span class="meta" id="header-meta"></span>
+  <div class="spacer"></div>
+  <span class="meta">Pending: <span class="pending-badge" id="pending-count">0</span></span>
+  <button id="clear-btn" title="Clear all pending edits">Clear</button>
+  <button id="export-btn" class="primary">Export Changes</button>
+</header>
+<main>
+  <aside class="grid">
+    <input id="search" class="search" placeholder="Search photos…" />
+    <div class="filter-row">
+      <button class="filter on" data-filter="all">All</button>
+      <button class="filter" data-filter="untagged">Untagged</button>
+      <button class="filter" data-filter="dirty">Edited</button>
+      <button class="filter" data-filter="paired">Paired</button>
+    </div>
+    <div id="thumbs"></div>
+  </aside>
+  <section class="image">
+    <div class="image-toolbar" id="image-toolbar" style="display:none">
+      <div class="group face-tabs" id="face-tabs"></div>
+      <div class="group">
+        <label>Rotate</label>
+        <button id="rotate-l" title="Rotate left 90°">⟲</button>
+        <button id="rotate-r" title="Rotate right 90°">⟳</button>
+      </div>
+      <div class="group">
+        <button id="tag-mode" title="Click on the image to add a tag">📍 Tag mode</button>
+      </div>
+      <div class="group" style="border-right:0; flex:1; justify-content:flex-end; display:flex">
+        <span class="meta" id="face-rotation-info"></span>
+      </div>
+    </div>
+    <div class="image-area" id="image-area">
+      <div class="image-empty">Select a photo on the left to begin tagging.</div>
+    </div>
+  </section>
+  <aside class="panel" id="panel">
+    <div class="image-empty" style="margin-top:24px">No photo selected.</div>
+  </aside>
+</main>
+
+<script id="data" type="application/json">{"generated_at": "2026-05-31T18:48:19", "photos": [{"id": "sources/1912-klara-passport-photo", "title": "1912 Klara Riverstone passport photo (immigration)", "folder": "sources", "front": "../sources/1912-klara-passport-photo.jpg", "back": null, "sidecar": "sources/1912-klara-passport-photo.md", "tag_field": "related_people", "tags": ["[[Klara Adler (1890)]]"], "type": "photo", "rotation": 0, "rotation_back": 0, "markers": [], "caption": "", "date": "1912", "location": ""}, {"id": "sources/heinrich-riverstone-tombstone", "title": "Heinrich Riverstone tombstone (shared with Klara)", "folder": "sources", "front": "../sources/heinrich-riverstone-tombstone.jpg", "back": null, "sidecar": "sources/heinrich-riverstone-tombstone.md", "tag_field": "related_people", "tags": ["[[Heinrich Riverstone (1885)]]", "[[Klara Adler (1890)]]"], "type": "tombstone", "rotation": 0, "rotation_back": 0, "markers": [], "caption": "", "date": "1971", "location": ""}, {"id": "media/undated-riverstone-family-portrait", "title": "undated-riverstone-family-portrait", "folder": "media", "front": "../media/undated-riverstone-family-portrait.jpg", "back": null, "sidecar": null, "tag_field": "related_people", "tags": [], "type": "", "rotation": 0, "rotation_back": 0, "markers": [], "caption": ""}], "people": ["[[Aaron Adler]]", "[[Carl Sandstrom (1920)]]", "[[Catherine Brennan (1940)]]", "[[Else Riverstone (1922)]]", "[[Friedrich Riverstone (1918)]]", "[[Heinrich Riverstone (1885)]]", "[[Klara Adler (1890)]]", "[[Linda Sandstrom (1950)]]", "[[Mary Riverstone (1915)]]", "[[Thomas Brennan (1912)]]"]}</script>
+<script>
+const DATA = JSON.parse(document.getElementById('data').textContent);
+const STORAGE_KEY = 'photo-tagger-edits-v2';
+
+// edits[id] = {
+//   add: Set<string>, remove: Set<string>,
+//   markers_add: [{person,x,y,face}],
+//   markers_remove: [int],   // indexes into the original markers list
+//   rotation: 0|90|180|270,
+//   rotation_back: 0|90|180|270,
+//   caption: string|null,
+// }
+function loadEdits() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    const out = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      out[k] = {
+        add: new Set(v.add || []),
+        remove: new Set(v.remove || []),
+        markers_add: v.markers_add || [],
+        markers_remove: new Set(v.markers_remove || []),
+        rotation: v.rotation ?? null,
+        rotation_back: v.rotation_back ?? null,
+        date: v.date != null ? v.date : undefined,
+        caption: v.caption ?? null,
+      };
+    }
+    return out;
+  } catch (e) { return {}; }
+}
+function saveEdits() {
+  const serial = {};
+  for (const [k, v] of Object.entries(edits)) {
+    if (!isDirty(k)) continue;
+    serial[k] = {
+      add: [...v.add],
+      remove: [...v.remove],
+      markers_add: v.markers_add,
+      markers_remove: [...v.markers_remove],
+      rotation: v.rotation,
+      rotation_back: v.rotation_back,
+      date: v.date != null ? v.date : undefined,
+      caption: v.caption,
+    };
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(serial));
+}
+
+let edits = loadEdits();
+let selectedId = null;
+let currentFace = 'front';
+let tagMode = false;
+let currentFilter = 'all';
+
+function ensureEdit(id) {
+  if (!edits[id]) edits[id] = {
+    add: new Set(), remove: new Set(),
+    markers_add: [], markers_remove: new Set(),
+    rotation: null, rotation_back: null, caption: null,
+  };
+  return edits[id];
+}
+function isDirty(id) {
+  const e = edits[id]; if (!e) return false;
+  return e.add.size || e.remove.size || e.markers_add.length || e.markers_remove.size
+    || e.rotation != null || e.rotation_back != null
+    || e.date != null && e.date !== undefined
+    || (e.caption != null && e.caption !== '');
+}
+function pendingTotal() {
+  return Object.keys(edits).filter(isDirty).length;
+}
+function effectiveTags(p) {
+  const e = edits[p.id]; const base = new Set(p.tags);
+  if (e) { for (const t of e.remove) base.delete(t); for (const t of e.add) base.add(t); }
+  return [...base];
+}
+function effectiveMarkers(p) {
+  const e = edits[p.id];
+  const base = (p.markers || []).map((m, i) => ({...m, _idx: i, _state: 'existing'}));
+  let out = e ? base.filter(m => !e.markers_remove.has(m._idx)) : base;
+  if (e) {
+    for (const m of e.markers_add) out.push({...m, _state: 'added'});
+  }
+  return out;
+}
+function effectiveDate(p) {
+  // returns {y, m, d} strings from edit (if set) or photo.date YAML
+  const e = edits[p.id];
+  const raw = (e && e.date != null) ? e.date : (p.date || '');
+  return parseDate(raw);
+}
+function effectiveDateStr(p) {
+  const dd = effectiveDate(p);
+  return joinDate(dd.y, dd.m, dd.d);
+}
+function parseDate(s) {
+  if (!s) return { y: '', m: '', d: '' };
+  // accept YYYY, YYYY-MM, YYYY-MM-DD; also tolerate slashes
+  const m = String(s).trim().match(/^(\d{4})(?:[-/](\d{1,2}))?(?:[-/](\d{1,2}))?$/);
+  if (!m) return { y: String(s), m: '', d: '' };
+  return {
+    y: m[1] || '',
+    m: m[2] ? String(m[2]).padStart(2, '0') : '',
+    d: m[3] ? String(m[3]).padStart(2, '0') : '',
+  };
+}
+function joinDate(y, mo, d) {
+  if (!y) return '';
+  let out = String(y);
+  if (mo) out += '-' + String(mo).padStart(2, '0');
+  if (mo && d) out += '-' + String(d).padStart(2, '0');
+  return out;
+}
+function effectiveRotation(p, face) {
+  const e = edits[p.id]; if (!e) return face === 'front' ? p.rotation || 0 : p.rotation_back || 0;
+  if (face === 'front') return e.rotation != null ? e.rotation : (p.rotation || 0);
+  return e.rotation_back != null ? e.rotation_back : (p.rotation_back || 0);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderThumbs() {
+  const wrap = document.getElementById('thumbs');
+  wrap.innerHTML = '';
+  const q = (document.getElementById('search').value || '').toLowerCase();
+  const photos = DATA.photos.filter(p => {
+    if (currentFilter === 'untagged' && effectiveTags(p).length > 0) return false;
+    if (currentFilter === 'dirty' && !isDirty(p.id)) return false;
+    if (currentFilter === 'paired' && !p.back) return false;
+    if (!q) return true;
+    if (p.title.toLowerCase().includes(q)) return true;
+    return p.tags.some(t => t.toLowerCase().includes(q));
+  });
+  for (const p of photos) {
+    const d = document.createElement('div');
+    d.className = 'thumb' + (selectedId === p.id ? ' active' : '');
+    d.dataset.id = p.id;
+    const tagCount = effectiveTags(p).length;
+    d.innerHTML = `
+      <img loading="lazy" src="${p.front || p.back || ''}" alt="" />
+      <div class="label">
+        ${escapeHtml(p.title)}
+        <div class="sub">${escapeHtml(p.folder)}${p.type ? ' · ' + escapeHtml(p.type) : ''}</div>
+        ${isDirty(p.id) ? '<span class="badge dirty">edited</span>' : ''}
+        ${p.back ? '<span class="badge pair">front+back</span>' : ''}
+        <span class="badge">${tagCount} tag${tagCount === 1 ? '' : 's'}</span>
+      </div>`;
+    d.addEventListener('click', () => selectPhoto(p.id));
+    wrap.appendChild(d);
+  }
+  document.getElementById('header-meta').textContent =
+    `${DATA.photos.length} photos · ${DATA.people.length} people`;
+  document.getElementById('pending-count').textContent = pendingTotal();
+}
+
+function selectPhoto(id) {
+  selectedId = id;
+  currentFace = 'front';
+  tagMode = false;
+  renderThumbs();
+  renderImage();
+  renderPanel();
+}
+
+function renderImage() {
+  const area = document.getElementById('image-area');
+  const toolbar = document.getElementById('image-toolbar');
+  const photo = DATA.photos.find(p => p.id === selectedId);
+  if (!photo) {
+    toolbar.style.display = 'none';
+    area.innerHTML = '<div class="image-empty">Select a photo on the left to begin tagging.</div>';
+    return;
+  }
+  toolbar.style.display = 'flex';
+  const tabs = document.getElementById('face-tabs');
+  tabs.innerHTML = '';
+  const faces = [];
+  if (photo.front) faces.push('front');
+  if (photo.back) faces.push('back');
+  for (const f of faces) {
+    const b = document.createElement('button');
+    b.textContent = f.charAt(0).toUpperCase() + f.slice(1);
+    if (f === currentFace) b.classList.add('on');
+    b.addEventListener('click', () => { currentFace = f; renderImage(); });
+    tabs.appendChild(b);
+  }
+  if (faces.length === 1) tabs.style.display = 'none';
+  else tabs.style.display = '';
+
+  const rot = effectiveRotation(photo, currentFace);
+  document.getElementById('face-rotation-info').textContent =
+    rot ? `Rotation: ${rot}°` : '';
+
+  document.getElementById('tag-mode').classList.toggle('on', tagMode);
+  area.classList.toggle('tag-cursor', tagMode);
+
+  const src = currentFace === 'front' ? photo.front : photo.back;
+  if (!src) {
+    area.innerHTML = '<div class="image-empty">No image for this face.</div>';
+    return;
+  }
+
+  // markers only on the front face (back is text)
+  const markers = currentFace === 'front' ? effectiveMarkers(photo) : [];
+  const markerHtml = markers.map((m, i) =>
+    `<div class="marker ${m._state === 'added' ? 'added' : ''}" data-idx="${i}"
+        style="left:${m.x*100}%; top:${m.y*100}%"
+        title="${escapeHtml(m.person || '?')}">${i + 1}</div>`
+  ).join('');
+
+  area.innerHTML = `
+    <div class="image-wrap" style="transform: rotate(${rot}deg)">
+      <img id="main-img" src="${src}" alt=""/>
+      <div class="markers-overlay">${markerHtml}</div>
+    </div>`;
+
+  // Click handler — adds a marker. Captures coordinates in the IMAGE's
+  // natural (unrotated) frame using inverse rotation math, so markers
+  // stay aligned to image content regardless of display rotation.
+  const wrap = area.querySelector('.image-wrap');
+  const img = area.querySelector('img');
+  img.addEventListener('click', ev => {
+    if (!tagMode) return;
+    ev.preventDefault();
+    // wrap.getBoundingClientRect() returns the AABB AFTER the parent's
+    // rotate(). But for the natural-frame math we need the center of the
+    // image — which is the center of the wrap, regardless of rotation.
+    const wr = wrap.getBoundingClientRect();
+    const cx = wr.left + wr.width / 2;
+    const cy = wr.top + wr.height / 2;
+    // Screen-space displacement from center
+    const dx = ev.clientX - cx;
+    const dy = ev.clientY - cy;
+    // Inverse-rotate (CSS rotates CW; to invert we rotate CCW by rot)
+    const rotDeg = effectiveRotation(photo, currentFace);
+    const rad = -rotDeg * Math.PI / 180;
+    const cs = Math.cos(rad), sn = Math.sin(rad);
+    const ux = dx * cs - dy * sn;
+    const uy = dx * sn + dy * cs;
+    // The unrotated displayed image's local size is img.offsetWidth × offsetHeight
+    const w = img.offsetWidth || img.naturalWidth;
+    const h = img.offsetHeight || img.naturalHeight;
+    const fx = ux / w + 0.5;
+    const fy = uy / h + 0.5;
+    // Clamp to [0,1] just in case of edge clicks
+    const cl = v => Math.max(0, Math.min(1, v));
+    promptMarkerPerson(photo.id, cl(fx), cl(fy));
+  });
+  // Click a marker to remove
+  area.querySelectorAll('.marker').forEach((el, idx) => {
+    el.addEventListener('click', ev => {
+      ev.stopPropagation();
+      const e = ensureEdit(photo.id);
+      const m = markers[idx];
+      if (m._state === 'added') {
+        // remove from markers_add
+        const realIdx = e.markers_add.indexOf(m._raw || null);
+        const filt = e.markers_add.filter(x => !(x.x === m.x && x.y === m.y && x.person === m.person));
+        e.markers_add = filt;
+      } else {
+        e.markers_remove.add(m._idx);
+      }
+      saveEdits();
+      renderImage(); renderPanel(); renderThumbs();
+    });
+  });
+}
+
+function promptMarkerPerson(photoId, x, y) {
+  // Inline mini-prompt: render a temporary autocomplete near the right-panel input.
+  // Easiest: focus the right-panel autocomplete and stash a pending position.
+  pendingMarker = { photoId, x, y };
+  const inp = document.getElementById('ac-input');
+  if (inp) { inp.placeholder = `Pick person for marker @ ${(x*100).toFixed(0)}%,${(y*100).toFixed(0)}% …`; inp.focus(); }
+}
+let pendingMarker = null;
+
+function renderPanel() {
+  const panel = document.getElementById('panel');
+  const photo = DATA.photos.find(p => p.id === selectedId);
+  if (!photo) {
+    panel.innerHTML = '<div class="image-empty" style="margin-top:24px">No photo selected.</div>';
+    return;
+  }
+  const e = ensureEdit(photo.id);
+  // chips: existing tags + removed (strikethrough) + added (green)
+  const chipHtml = [];
+  for (const t of photo.tags) {
+    if (e.remove.has(t)) {
+      chipHtml.push(`<span class="chip removed" data-tag="${escapeHtml(t)}">${escapeHtml(t)}<button title="Undo remove" data-action="undo-remove">↺</button></span>`);
+    } else {
+      chipHtml.push(`<span class="chip" data-tag="${escapeHtml(t)}">${escapeHtml(t)}<button title="Remove tag" data-action="remove">×</button></span>`);
+    }
+  }
+  for (const t of e.add) {
+    chipHtml.push(`<span class="chip added" data-tag="${escapeHtml(t)}">${escapeHtml(t)}<button title="Undo add" data-action="undo-add">×</button></span>`);
+  }
+
+  // markers list
+  const markers = effectiveMarkers(photo);
+  const markerListHtml = markers.length ? markers.map((m, i) => `
+    <div class="marker-row ${m._state === 'added' ? 'added' : ''}">
+      <span class="dot">${i + 1}</span>
+      <span class="person">${escapeHtml(m.person || '—')}</span>
+      <span class="pos">${(m.x*100).toFixed(0)},${(m.y*100).toFixed(0)}</span>
+      <button class="x" data-marker-idx="${i}" title="Remove marker">×</button>
+    </div>
+  `).join('') : '<div class="meta-row">No positional markers. Toggle <strong>Tag mode</strong> and click the image to drop one.</div>';
+
+  panel.innerHTML = `
+    <h2>${escapeHtml(photo.title)}</h2>
+    <div class="meta-row">
+      <code>${escapeHtml(photo.folder + '/' + photo.title)}</code>
+      ${photo.sidecar ? `<br/>sidecar: <code>${escapeHtml(photo.sidecar)}</code>` : ''}
+      ${photo.type ? `<br/>type: <code>${escapeHtml(photo.type)}</code>` : ''}
+    </div>
+
+    <h3>People in this photo</h3>
+    <div class="chips" id="chips">${chipHtml.join('')}</div>
+    <div class="autocomplete">
+      <input id="ac-input" type="text" placeholder="+ Add person — start typing…" autocomplete="off"/>
+      <div class="results" id="ac-results"></div>
+      <div class="hint">From <code>people/</code> (${DATA.people.length} entries). Enter to pick.</div>
+    </div>
+
+    <h3>Date</h3>
+    <div class="date-row">
+      <input id="date-y" class="date-input" type="number" placeholder="YYYY" min="1700" max="2100" value="${escapeHtml(effectiveDate(photo).y)}"/>
+      <select id="date-m" class="date-input">
+        <option value="">— month —</option>
+        <option value="01">January</option>
+        <option value="02">February</option>
+        <option value="03">March</option>
+        <option value="04">April</option>
+        <option value="05">May</option>
+        <option value="06">June</option>
+        <option value="07">July</option>
+        <option value="08">August</option>
+        <option value="09">September</option>
+        <option value="10">October</option>
+        <option value="11">November</option>
+        <option value="12">December</option>
+      </select>
+      <input id="date-d" class="date-input" type="number" placeholder="DD" min="1" max="31" value="${escapeHtml(effectiveDate(photo).d)}"/>
+    </div>
+    <div class="hint">Any precision OK — year alone, or year + month, or year + month + day. Stored as <code>YYYY-MM-DD</code> / <code>YYYY-MM</code> / <code>YYYY</code>.</div>
+    <div class="meta-row" style="margin-top:4px">Currently saved: <code id="date-preview">${escapeHtml(effectiveDateStr(photo) || '(none)')}</code></div>
+
+    <h3>Positional markers</h3>
+    <div class="marker-list" id="marker-list">${markerListHtml}</div>
+
+    <h3>Caption / Notes</h3>
+    <textarea id="caption-edit" class="caption-edit" placeholder="Add a caption or correction…">${escapeHtml(e.caption ?? '')}</textarea>
+  `;
+
+  // Wire chips
+  panel.querySelector('#chips').addEventListener('click', ev => {
+    const btn = ev.target.closest('button'); if (!btn) return;
+    const chip = btn.closest('.chip'); const tag = chip.dataset.tag;
+    const ee = ensureEdit(photo.id);
+    const action = btn.dataset.action;
+    if (action === 'remove') ee.remove.add(tag);
+    else if (action === 'undo-remove') ee.remove.delete(tag);
+    else if (action === 'undo-add') ee.add.delete(tag);
+    saveEdits(); renderPanel(); renderThumbs(); renderImage();
+  });
+
+  // Wire marker removal
+  panel.querySelector('#marker-list').addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-marker-idx]'); if (!b) return;
+    const idx = parseInt(b.dataset.markerIdx, 10);
+    const m = markers[idx];
+    const ee = ensureEdit(photo.id);
+    if (m._state === 'added') {
+      ee.markers_add = ee.markers_add.filter(x => !(x.x === m.x && x.y === m.y && x.person === m.person));
+    } else {
+      ee.markers_remove.add(m._idx);
+    }
+    saveEdits(); renderPanel(); renderImage(); renderThumbs();
+  });
+
+  // Wire caption
+  panel.querySelector('#caption-edit').addEventListener('input', ev => {
+    const ee = ensureEdit(photo.id);
+    ee.caption = ev.target.value || null;
+    saveEdits(); renderThumbs();
+  });
+
+  // Wire date inputs — set the month select to current value, then listen
+  const dY = panel.querySelector('#date-y');
+  const dM = panel.querySelector('#date-m');
+  const dD = panel.querySelector('#date-d');
+  const dPreview = panel.querySelector('#date-preview');
+  const curDate = effectiveDate(photo);
+  if (curDate.m) dM.value = curDate.m;
+  function pushDate() {
+    const ee = ensureEdit(photo.id);
+    const newStr = joinDate(dY.value.trim(), dM.value, dD.value.trim());
+    // Only mark as edit if value actually changed from saved YAML
+    if (newStr === (photo.date || '')) {
+      ee.date = undefined;        // unset: not a pending change
+      delete ee.date;
+    } else {
+      ee.date = newStr;
+    }
+    dPreview.textContent = newStr || '(none)';
+    saveEdits(); renderThumbs();
+  }
+  [dY, dM, dD].forEach(el => el.addEventListener('input', pushDate));
+  dM.addEventListener('change', pushDate);
+
+  // Wire autocomplete
+  const ac = panel.querySelector('#ac-input');
+  const acResults = panel.querySelector('#ac-results');
+  let focusIdx = -1;
+  function updateResults() {
+    const q = ac.value.trim().toLowerCase();
+    if (!q) { acResults.classList.remove('show'); acResults.innerHTML = ''; return; }
+    const ee = ensureEdit(photo.id);
+    const present = new Set(photo.tags.filter(t => !ee.remove.has(t)));
+    for (const t of ee.add) present.add(t);
+    const matches = DATA.people.filter(p => p.toLowerCase().includes(q) && !present.has(p)).slice(0, 20);
+    if (!matches.length) { acResults.classList.remove('show'); return; }
+    acResults.innerHTML = matches.map((m, i) =>
+      `<div data-name="${escapeHtml(m)}" class="${i===0?'focus':''}">${escapeHtml(m)}</div>`).join('');
+    acResults.classList.add('show');
+    focusIdx = 0;
+  }
+  function pickPerson(name) {
+    const ee = ensureEdit(photo.id);
+    if (pendingMarker && pendingMarker.photoId === photo.id) {
+      ee.markers_add.push({ person: name, x: pendingMarker.x, y: pendingMarker.y, face: 'front' });
+      pendingMarker = null;
+      ac.placeholder = '+ Add person — start typing…';
+    } else {
+      if (photo.tags.includes(name)) ee.remove.delete(name);
+      else ee.add.add(name);
+    }
+    saveEdits();
+    ac.value = '';
+    acResults.classList.remove('show');
+    renderPanel(); renderImage(); renderThumbs();
+  }
+  ac.addEventListener('input', updateResults);
+  ac.addEventListener('keydown', ev => {
+    const items = [...acResults.querySelectorAll('div')];
+    if (ev.key === 'ArrowDown') {
+      ev.preventDefault();
+      if (!items.length) return;
+      focusIdx = (focusIdx + 1) % items.length;
+      items.forEach((el, i) => el.classList.toggle('focus', i === focusIdx));
+      items[focusIdx].scrollIntoView({block:'nearest'});
+    } else if (ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      if (!items.length) return;
+      focusIdx = (focusIdx - 1 + items.length) % items.length;
+      items.forEach((el, i) => el.classList.toggle('focus', i === focusIdx));
+      items[focusIdx].scrollIntoView({block:'nearest'});
+    } else if (ev.key === 'Enter') {
+      ev.preventDefault();
+      if (focusIdx >= 0 && items[focusIdx]) pickPerson(items[focusIdx].dataset.name);
+    } else if (ev.key === 'Escape') {
+      acResults.classList.remove('show');
+      if (pendingMarker) { pendingMarker = null; ac.placeholder = '+ Add person — start typing…'; }
+    }
+  });
+  acResults.addEventListener('click', ev => {
+    const d = ev.target.closest('div[data-name]');
+    if (d) pickPerson(d.dataset.name);
+  });
+}
+
+// Header buttons
+document.getElementById('search').addEventListener('input', renderThumbs);
+document.querySelectorAll('.filter').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.filter').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    currentFilter = b.dataset.filter;
+    renderThumbs();
+  });
+});
+document.getElementById('rotate-l').addEventListener('click', () => rotateBy(-90));
+document.getElementById('rotate-r').addEventListener('click', () => rotateBy(90));
+function rotateBy(delta) {
+  if (!selectedId) return;
+  const photo = DATA.photos.find(p => p.id === selectedId);
+  const e = ensureEdit(photo.id);
+  const cur = effectiveRotation(photo, currentFace);
+  const next = ((cur + delta) % 360 + 360) % 360;
+  if (currentFace === 'front') e.rotation = next;
+  else e.rotation_back = next;
+  saveEdits();
+  renderImage();
+  renderThumbs();
+}
+document.getElementById('tag-mode').addEventListener('click', () => {
+  tagMode = !tagMode;
+  renderImage();
+});
+
+document.getElementById('clear-btn').addEventListener('click', () => {
+  if (!confirm('Clear all pending edits? This cannot be undone.')) return;
+  edits = {}; saveEdits();
+  renderThumbs(); renderImage(); renderPanel();
+});
+
+document.getElementById('export-btn').addEventListener('click', () => {
+  const out = { schema: 'photo-tagger/v2', exported_at: new Date().toISOString(), edits: [] };
+  for (const p of DATA.photos) {
+    const e = edits[p.id]; if (!e || !isDirty(p.id)) continue;
+    out.edits.push({
+      photo: p.id,
+      sidecar: p.sidecar,
+      tag_field: p.tag_field,
+      add: [...e.add],
+      remove: [...e.remove],
+      markers_add: e.markers_add,
+      markers_remove: [...e.markers_remove],
+      rotation: e.rotation,
+      rotation_back: e.rotation_back,
+      date: e.date != null ? e.date : null,
+      caption: e.caption,
+    });
+  }
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `photo-tagger-changes-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+
+renderThumbs();
+</script>
+</body>
+</html>
