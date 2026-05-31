@@ -53,7 +53,7 @@ When you're ready to add your own family, see
 ### 2. Obsidian + AI power user — "install into my existing vault" (30 min)
 
 ```sh
-git clone https://github.com/<your-username>/genealogy-vault.git
+git clone https://github.com/elkusbry/genealogy-vault.git
 cd genealogy-vault
 ./install.sh /path/to/your/existing/vault
 ```
@@ -61,6 +61,17 @@ cd genealogy-vault
 The installer copies just the tooling (skill, scripts, templates,
 entry-point files) into your vault. Your `people/`, `sources/`, `media/`
 are untouched. Re-run the installer any time to upgrade.
+
+**Alternative — install the skill as a Claude Code plugin** (still need
+to run `install.sh` for the scripts and templates):
+
+```
+/plugin marketplace add elkusbry/genealogy-vault
+/plugin install genealogy-vault@genealogy-vault
+```
+
+The plugin path gives you `/plugin upgrade` for the skill content;
+re-run `install.sh` for the rest.
 
 Full guide: [`docs/setup-powerusers.md`](docs/setup-powerusers.md).
 
@@ -137,12 +148,13 @@ underlying skill content lives in one place.
 
 ## Roadmap
 
-- **v0.2** — Claude Code plugin distribution (auto-updates via
-  `/plugin upgrade`); pre-recorded screencast embedded in README;
-  CC0 placeholder images for demo binary assets.
-- **v0.3** — Hosted demo site (Obsidian Publish export of the
-  Riverstones); CI that exercises both agents end-to-end against the
-  demo fixture.
+- **v0.2 — shipped.** Claude Code plugin scaffolding
+  (`.claude-plugin/plugin.json` + `marketplace.json` +
+  `skills/genealogy/SKILL.md`); CC0 placeholder JPEGs for demo;
+  prebuilt tagger HTMLs against the Riverstone fixture.
+- **v0.3** — Pre-recorded screencast / hero GIF embedded in README;
+  hosted demo site (Obsidian Publish export of the Riverstones); CI
+  that exercises both agents end-to-end against the demo fixture.
 
 ## Contributing
 

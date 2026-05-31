@@ -17,6 +17,33 @@ or rename in `templates/person.md`, `templates/document.md`, or
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-31
+
+### Added
+
+- Claude Code plugin scaffolding: `.claude-plugin/plugin.json` and
+  `.claude-plugin/marketplace.json` make this repo installable as a
+  self-published plugin. Users can install via:
+  ```
+  /plugin marketplace add elkusbry/genealogy-vault
+  /plugin install genealogy-vault@genealogy-vault
+  ```
+  The plugin packages the skill (`skills/genealogy/SKILL.md`) but expects
+  the toolkit (scripts, templates, tools) to be present in the vault via
+  `install.sh`.
+- Three CC0 placeholder JPEGs in the Riverstone fixture so the photo
+  tagger renders out of the box:
+  `demo/sources/heinrich-riverstone-tombstone.jpg`,
+  `demo/sources/1912-klara-passport-photo.jpg`,
+  `demo/media/undated-riverstone-family-portrait.jpg`.
+- Prebuilt `_tools/document-tagger.html` and `_tools/photo-tagger.html`
+  against the Riverstone fixture (94 KB and 35 KB respectively).
+  Cloning the repo now gives a working tagger with no build step.
+
+### Changed
+
+- `demo/README.md` updated to reflect that placeholder images ship.
+
 ## [0.1.0] - 2026-05-31
 
 ### Added
