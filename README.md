@@ -1,5 +1,11 @@
 # genealogy-vault
 
+[![CI](https://github.com/elkusbry/genealogy-vault/actions/workflows/ci.yml/badge.svg)](https://github.com/elkusbry/genealogy-vault/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/github/v/release/elkusbry/genealogy-vault?include_prereleases&label=version&sort=semver)](https://github.com/elkusbry/genealogy-vault/releases)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-skill-orange)](https://www.anthropic.com/claude-code)
+[![Codex](https://img.shields.io/badge/Codex_CLI-supported-blue)](https://github.com/openai/codex)
+
 **An AI-assisted Obsidian genealogy vault. Drop scans, get a family tree.**
 
 ![hero](docs/screenshots/hero.gif)

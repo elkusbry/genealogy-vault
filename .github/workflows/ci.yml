@@ -110,16 +110,21 @@ jobs:
         run: |
           # The tagger build scripts expect VAULT/people, sources, media at
           # the root. The fixture lives under demo/, so symlink for the
-          # build then remove.
+          # build then move the output to demo/_tools/ (where the
+          # relative paths inside the HTML — '../sources/foo.jpg' etc. —
+          # correctly resolve into demo/sources/ and demo/media/).
           ln -sf demo/people people
           ln -sf demo/sources sources
           ln -sf demo/media media
           python3 _scripts/taggers/build_document_tagger.py
           python3 _scripts/taggers/build_photo_tagger.py
           rm -f people sources media
+          mkdir -p demo/_tools
+          mv _tools/document-tagger.html demo/_tools/
+          mv _tools/photo-tagger.html demo/_tools/
           # Sanity-check the output files exist and have reasonable size
-          test -s _tools/document-tagger.html
-          test -s _tools/photo-tagger.html
+          test -s demo/_tools/document-tagger.html
+          test -s demo/_tools/photo-tagger.html
 
   validate-fixtures:
     name: Validate Riverstone fixture

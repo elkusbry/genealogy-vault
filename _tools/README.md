@@ -16,9 +16,15 @@ UI for tagging photos with people via autocomplete. Built from images in
 
 ## Build / regenerate
 
-The prebuilt files in this directory are generated against the **Riverstone
-demo fixture** so cloning the repo gives you a working tagger to click
-through immediately. When you add your own photos and people, regenerate:
+Once you've added your own photos and people, the build scripts produce
+the tagger HTMLs into THIS directory (`_tools/`), with paths that point
+at `../sources/` and `../media/` (i.e., your vault root).
+
+Demo-flavored prebuilt taggers (against the Riverstone family) live at
+`demo/_tools/document-tagger.html` and `demo/_tools/photo-tagger.html`,
+where their relative paths resolve correctly into `demo/sources/` and
+`demo/media/`. Open one of those to see the tagger working out of the
+box; build your own into this directory after `install.sh`:
 
 ```sh
 python3 _scripts/taggers/build_document_tagger.py

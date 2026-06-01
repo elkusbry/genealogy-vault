@@ -43,7 +43,12 @@ demo/
 ## Binary assets
 
 **Three CC0 placeholder JPEGs ship with this demo** so the photo tagger
-renders something out of the box:
+renders something out of the box. Open
+[`demo/_tools/photo-tagger.html`](_tools/photo-tagger.html) directly in
+your browser to see them rendered (the prebuilt tagger's relative paths
+are designed to resolve from this directory).
+
+The three images:
 
 - `demo/sources/heinrich-riverstone-tombstone.jpg`
 - `demo/sources/1912-klara-passport-photo.jpg`
