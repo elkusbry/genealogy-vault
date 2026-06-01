@@ -17,6 +17,28 @@ or rename in `templates/person.md`, `templates/document.md`, or
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-31
+
+### Added
+
+- **Animated hero GIF** (`docs/screenshots/hero.gif`, 163 KB, 8 frames,
+  ~15s loop) replacing the static composite at the top of the README.
+  Shows the full workflow: PDF drops → user types "process the inbox" →
+  OCR runs → German letter text appears → entities highlighted → YAML
+  person-file diff → PDF + sidecar filed into `sources/` → summary
+  with one open research question logged. PIL-generated. Static
+  composite preserved at `docs/screenshots/hero.png` as the high-res
+  fallback.
+- **Maintainer workflow doc** (`docs/maintainer-workflow.md`) explaining
+  the relationship between a personal vault and this toolkit: which
+  files the toolkit owns, the supported dev loop (edit upstream → test
+  → re-install), how to handle drift, and the release flow.
+- **Drift-check script** (`_scripts/drift_check.sh`) that diffs the
+  toolkit's owned files against a target vault's copies and reports
+  drifted/missing/only-in-vault counts. Filters out noise
+  (`.DS_Store`, logs, OCR cache, `archive/`). Useful before re-running
+  `install.sh` against a vault that may have local script edits.
+
 ## [0.3.0] - 2026-05-31
 
 ### Added

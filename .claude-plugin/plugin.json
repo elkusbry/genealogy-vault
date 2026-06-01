@@ -1,7 +1,7 @@
 {
   "name": "genealogy-vault",
   "description": "AI-assisted Obsidian genealogy vault skill. Drop scans, get a family tree. Works in Claude Code (this plugin) and Codex CLI (via AGENTS.md).",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "author": {
     "name": "Bryan Elkus",
     "email": "bryan.elkus@atomicobject.com"

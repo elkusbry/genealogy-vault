@@ -31,6 +31,8 @@ jobs:
         run: shellcheck install.sh
       - name: shellcheck process-scans.sh
         run: shellcheck _scripts/scan-pipeline/process-scans.sh
+      - name: shellcheck drift_check.sh
+        run: shellcheck _scripts/drift_check.sh
 
   lint-python:
     name: Lint Python

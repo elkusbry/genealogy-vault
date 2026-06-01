@@ -2,12 +2,13 @@
 
 **An AI-assisted Obsidian genealogy vault. Drop scans, get a family tree.**
 
-![hero](docs/screenshots/hero.png)
+![hero](docs/screenshots/hero.gif)
 
-<!-- The hero above is a static composite showing the workflow. For an
-     animated version, record a screen capture of Claude Code processing
-     a real inbox, save as docs/screenshots/hero.gif, and swap the
-     extension above. -->
+<!-- 8-frame animated hero showing the workflow: drop PDF → process inbox
+     → OCR → entity extraction → person-file updates → filing. Synthetic
+     animation (PIL frames). For a real screen capture, record a Claude
+     Code session and replace docs/screenshots/hero.gif. The static
+     composite is preserved at docs/screenshots/hero.png. -->
 
 
 > Works with **Claude Code** and **Codex CLI** out of the box. One canonical
@@ -137,7 +138,8 @@ underlying skill content lives in one place.
   [using with Claude Code](docs/using-with-claude-code.md),
   [using with Codex](docs/using-with-codex.md),
   [workflows](docs/workflows.md), [upgrading](docs/upgrading.md),
-  [contributing](docs/contributing.md)
+  [contributing](docs/contributing.md),
+  [maintainer workflow](docs/maintainer-workflow.md)
 
 ## Optional integrations
 
@@ -157,11 +159,16 @@ underlying skill content lives in one place.
   skill validator (`_scripts/validate_skill.py`) + CI step that catches
   broken references and stale workflow links; tagger-build smoke test
   in CI against the Riverstone fixture.
-- **v0.4** — Animated hero GIF (real screen capture of the workflow);
-  hosted demo site (Quartz / obsidian-html static export of the
-  Riverstones — Jekyll alone can't render Obsidian wikilinks); CI that
-  exercises both Claude Code and Codex end-to-end against the demo
-  (requires interactive harness).
+- **v0.4 — shipped.** Animated 8-frame hero GIF showing the workflow
+  end-to-end; maintainer workflow doc explaining how changes flow
+  between a personal vault and this public toolkit; drift-check script
+  (`_scripts/drift_check.sh`) that surfaces local-vault divergences
+  before re-running `install.sh`.
+- **v0.5** — Real screen capture of the workflow in a real Claude Code
+  session (the v0.4 hero is synthetic); hosted demo site (Quartz /
+  obsidian-html static export of the Riverstones — Jekyll alone can't
+  render Obsidian wikilinks); CI that exercises both Claude Code and
+  Codex end-to-end against the demo (requires interactive harness).
 
 ## Contributing
 
