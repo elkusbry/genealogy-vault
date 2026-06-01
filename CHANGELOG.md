@@ -17,6 +17,18 @@ or rename in `templates/person.md`, `templates/document.md`, or
 
 ## [Unreleased]
 
+### Changed
+
+- **Hero GIF expanded from 8 to 12 frames** (311 KB, ~29 s loop). The
+  original 8 frames cover the inbox → OCR → fact extraction → filing
+  flow. Four new frames show the *payoff*: the Obsidian graph view of
+  the Riverstone family (force-directed, with Heinrich highlighted),
+  Heinrich's person page rendered in Obsidian preview (with wikilinks
+  and an embedded tombstone image), the document tagger's Translation
+  tab (German letter on the left, Catherine Brennan's 2018 English
+  translation on the right), and the photo tagger (thumbnails,
+  metadata pane, autocomplete dropdown).
+
 ## [0.4.0] - 2026-05-31
 
 ### Added
