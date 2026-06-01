@@ -10,11 +10,18 @@
 
 ![hero](docs/screenshots/hero.gif)
 
-<!-- 8-frame animated hero showing the workflow: drop PDF → process inbox
-     → OCR → entity extraction → person-file updates → filing. Synthetic
-     animation (PIL frames). For a real screen capture, record a Claude
-     Code session and replace docs/screenshots/hero.gif. The static
+<!-- 10-frame animated hero (23 s loop): frames 1-8 are schematic
+     agent-log frames showing the workflow steps (PIL-rendered); frames
+     9-10 are REAL headless-Chrome screenshots of the actual taggers in
+     demo/_tools/, with a document and a photo selected. The static
      composite is preserved at docs/screenshots/hero.png. -->
+
+The taggers up close (real screenshots from `demo/_tools/`):
+
+<table><tr>
+<td><a href="docs/screenshots/document-tagger.png"><img src="docs/screenshots/document-tagger.png" alt="document tagger" width="380"/></a></td>
+<td><a href="docs/screenshots/photo-tagger.png"><img src="docs/screenshots/photo-tagger.png" alt="photo tagger" width="380"/></a></td>
+</tr></table>
 
 
 > Works with **Claude Code** and **Codex CLI** out of the box. One canonical
